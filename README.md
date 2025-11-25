@@ -6,7 +6,7 @@ KaizenClick is a modern, web-based time study application designed to help indus
 
 *   **Study Setup**: Quickly define operation details, operator, department, and takt time.
 *   **Digital Stopwatch**: Large, high-contrast timer display with millisecond precision.
-*   **Split/Lap Recording**: "Tap to Capture" interface optimized for touchscreens to record element times without looking away from the process.
+*   **Split/Lap Recording**: "Tap to Capture" interface optimized for touchscreens to record element times without looking away from the process. **Note: Split times are automatically rounded up to the nearest 15 seconds.**
 *   **Review & Edit**: Drag-and-drop interface to reorder elements, edit descriptions, and adjust times.
 *   **Data Export**: Export study data directly to Excel (.xlsx) for further analysis.
 *   **Print-Ready Reports**: Generates a clean "Standard Work Combination Sheet" layout for printing or saving as PDF.
