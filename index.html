@@ -149,7 +149,7 @@
         }
 
         .study-table col.col-num {
-            width: 50px;
+            width: 36px;
         }
 
         .study-table col.col-desc {
@@ -157,28 +157,54 @@
         }
 
         .study-table col.col-time {
-            width: 110px;
+            width: 75px;
         }
 
         .study-table col.col-act {
-            width: 50px;
+            width: 40px;
+        }
+
+        @media (min-width: 640px) {
+            .study-table col.col-num {
+                width: 50px;
+            }
+            .study-table col.col-time {
+                width: 110px;
+            }
+            .study-table col.col-act {
+                width: 50px;
+            }
         }
 
         .study-table thead th {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            padding: 8px 10px;
+            padding: 6px 8px;
             border-bottom: 2px solid #e2e8f0;
             color: #64748b;
             background: #f8fafc;
         }
 
+        @media (min-width: 640px) {
+            .study-table thead th {
+                font-size: 0.7rem;
+                padding: 8px 10px;
+            }
+        }
+
         .study-table tbody td {
-            padding: 6px 10px;
+            padding: 6px 8px;
             border-bottom: 1px solid #f1f5f9;
             vertical-align: middle;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
+        }
+
+        @media (min-width: 640px) {
+            .study-table tbody td {
+                padding: 8px 10px;
+                font-size: 0.875rem;
+            }
         }
 
         .study-table tbody tr:nth-child(even) {
@@ -205,10 +231,17 @@
             z-index: 40;
             background: #0f172a;
             border-top: 1px solid #1e293b;
-            padding: 10px 16px;
+            padding: 8px 10px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
+        }
+
+        @media (min-width: 640px) {
+            .capture-bar {
+                padding: 10px 16px;
+                gap: 10px;
+            }
         }
 
         .review-bar {
@@ -220,12 +253,19 @@
             background: #ffffff;
             border-top: 1px solid #e2e8f0;
             box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
-            padding: 10px 16px;
+            padding: 8px 10px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
+        }
+
+        @media (min-width: 640px) {
+            .review-bar {
+                padding: 10px 16px;
+                gap: 8px;
+            }
         }
 
         /* Print Styling */
@@ -326,25 +366,25 @@
 
     <!-- APP HEADER -->
     <header id="app-header"
-        class="bg-slate-800 text-white p-3 px-4 shadow-md z-10 flex justify-between items-center shrink-0 print-hidden">
-        <h1 class="text-lg font-bold tracking-wider"><i class="fa-solid fa-stopwatch mr-2"></i>KaizenClick</h1>
+        class="bg-slate-800 text-white p-2 sm:p-3 px-3 sm:px-4 shadow-md z-10 flex justify-between items-center shrink-0 print-hidden">
+        <h1 class="text-sm sm:text-lg font-bold tracking-wider"><i class="fa-solid fa-stopwatch mr-1.5 sm:mr-2"></i>KaizenClick</h1>
 
         <!-- Timer Displays (visible during capture/review) -->
-        <div id="header-timers" class="hidden items-center gap-4 text-sm">
-            <div class="flex items-center gap-1.5 bg-slate-700/60 rounded-lg px-3 py-1.5">
-                <i class="fa-solid fa-clock text-slate-400 text-xs"></i>
-                <span class="text-slate-400 text-xs font-medium">ELAPSED</span>
-                <span id="header-elapsed" class="font-mono font-bold text-white tracking-tight">00:00</span>
+        <div id="header-timers" class="hidden items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+            <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-700/60 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                <i class="fa-solid fa-clock text-slate-400 text-[10px] sm:text-xs"></i>
+                <span class="text-slate-400 text-[10px] sm:text-xs font-medium hidden sm:inline">ELAPSED</span>
+                <span id="header-elapsed" class="font-mono font-bold text-white tracking-tight text-xs sm:text-sm md:text-base">00:00</span>
             </div>
-            <div id="header-split-container" class="flex items-center gap-1.5 bg-emerald-900/40 rounded-lg px-3 py-1.5">
-                <i class="fa-solid fa-rotate text-emerald-400 text-xs"></i>
-                <span class="text-emerald-400 text-xs font-medium">SPLIT</span>
-                <span id="header-split" class="font-mono font-bold text-emerald-300 tracking-tight">0:00</span>
+            <div id="header-split-container" class="flex items-center gap-1 sm:gap-1.5 bg-emerald-900/40 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                <i class="fa-solid fa-rotate text-emerald-400 text-[10px] sm:text-xs"></i>
+                <span class="text-emerald-400 text-[10px] sm:text-xs font-medium hidden sm:inline">SPLIT</span>
+                <span id="header-split" class="font-mono font-bold text-emerald-300 tracking-tight text-xs sm:text-sm md:text-base">0:00</span>
             </div>
         </div>
 
-        <div id="header-op-name" class="text-xs text-right hidden">
-            <span id="header-op" class="block font-bold text-slate-200"></span>
+        <div id="header-op-name" class="text-[10px] sm:text-xs text-right hidden sm:block">
+            <span id="header-op" class="block font-bold text-slate-200 truncate max-w-[100px] sm:max-w-none"></span>
         </div>
     </header>
 
@@ -431,11 +471,11 @@
                 class="bg-white rounded-xl shadow-lg print:shadow-none print:border print:border-gray-300 print:rounded-none">
 
                 <!-- Print Header / Metadata -->
-                <div id="review-header-meta" class="p-5 border-b border-gray-200">
+                <div id="review-header-meta" class="p-3 sm:p-5 border-b border-gray-200">
                     <h2
-                        class="text-xl font-extrabold text-slate-800 mb-3 uppercase tracking-wide print:text-lg print:mb-2">
+                        class="text-base sm:text-xl font-extrabold text-slate-800 mb-2 sm:mb-3 uppercase tracking-wide print:text-lg print:mb-2">
                         Standard Work Combination Sheet</h2>
-                    <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-sm print:text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-1 gap-x-4 text-xs sm:text-sm print:text-xs">
                         <p class="font-semibold">Operation: <span id="meta-op"
                                 class="font-normal border-b border-dashed border-gray-400"></span></p>
                         <p class="font-semibold">Date: <span id="meta-date"
@@ -448,7 +488,7 @@
                                 class="font-normal border-b border-dashed border-gray-400"></span></p>
                         <p class="font-semibold">TAKT Time: <span id="meta-takt"
                                 class="font-normal border-b border-dashed border-gray-400"></span> min</p>
-                        <p class="font-semibold">Manpower Required: <span id="meta-manpower"
+                        <p class="font-semibold col-span-1 sm:col-span-2">Manpower Required: <span id="meta-manpower"
                                 class="font-extrabold text-blue-700 print:text-gray-900 border-b border-dashed border-gray-400">0.00</span>
                             Op(s)</p>
                     </div>
@@ -466,12 +506,12 @@
                         <thead>
                             <tr>
                                 <th class="text-left"># <span
-                                        class="normal-case font-normal text-slate-400 no-print">(Drag)</span></th>
+                                        class="normal-case font-normal text-slate-400 no-print hidden sm:inline">(Drag)</span></th>
                                 <th class="text-left">Element Description <span
-                                        class="normal-case font-normal text-slate-400 ml-1 no-print">(Click to
+                                        class="normal-case font-normal text-slate-400 ml-1 no-print hidden sm:inline">(Click to
                                         edit)</span></th>
                                 <th class="text-right">Time (MM:SS) <span
-                                        class="normal-case font-normal text-slate-400 ml-1 no-print">(Click to
+                                        class="normal-case font-normal text-slate-400 ml-1 no-print hidden sm:inline">(Click to
                                         edit)</span></th>
                                 <th class="text-center no-print">Act</th>
                             </tr>
@@ -565,12 +605,12 @@
 
             <div class="mb-6">
                 <label class="block text-sm font-bold text-gray-500 mb-2">Element Description</label>
-                <input type="text" id="modal-input-desc" list="desc-history"
+                <input type="text" id="modal-input-desc"
                     class="w-full border-2 border-blue-200 rounded-lg p-4 text-xl focus:border-blue-500 focus:ring-4 ring-blue-100 outline-none"
                     placeholder="e.g. Grasp part..." autofocus autocomplete="off">
-                <datalist id="desc-history">
-                    <!-- Auto-populated with previous entries -->
-                </datalist>
+                <div id="modal-suggestions" class="flex flex-wrap gap-2 mt-3 max-h-[120px] overflow-y-auto">
+                    <!-- Dynamic suggestions injected here -->
+                </div>
             </div>
 
             <!-- Manual Duration Input (Visible only in Review Mode) -->
@@ -705,7 +745,7 @@
                     time: document.getElementById('modal-time'),
                     saveBtn: document.getElementById('btn-save-element'),
                     cancelBtn: document.getElementById('btn-cancel-element'),
-                    datalist: document.getElementById('desc-history'),
+                    suggestions: document.getElementById('modal-suggestions'),
                     confirmTitle: document.getElementById('confirm-title'),
                     confirmBody: document.getElementById('confirm-body'),
                     confirmBtn: document.getElementById('confirm-action-btn'),
@@ -907,6 +947,7 @@
                 this.els.timer.splitBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.triggerSplit(); });
                 this.els.modal.saveBtn.addEventListener('click', () => this.saveElement());
                 this.els.modal.cancelBtn.addEventListener('click', () => this.closeModal());
+                this.els.modal.inputDesc.addEventListener('input', (e) => this.renderModalSuggestions(e.target.value));
 
                 // Chip input: Enter key to add
                 this.els.chips.input.addEventListener('keydown', (e) => {
@@ -1069,6 +1110,86 @@
                             this.renderChips();
                         }
                     });
+
+                    // --- Touch-based drag-and-drop for mobile devices ---
+                    let touchStartX = 0;
+                    let touchStartY = 0;
+                    let clone = null;
+                    let startRect = null;
+                    let lastOverIndex = null;
+
+                    chip.addEventListener('touchstart', (e) => {
+                        if (e.target.closest('button')) return;
+                        
+                        const touch = e.touches[0];
+                        touchStartX = touch.clientX;
+                        touchStartY = touch.clientY;
+                        this.chipDragIndex = i;
+                        lastOverIndex = null;
+                        startRect = chip.getBoundingClientRect();
+                        
+                        clone = chip.cloneNode(true);
+                        clone.style.position = 'fixed';
+                        clone.style.top = startRect.top + 'px';
+                        clone.style.left = startRect.left + 'px';
+                        clone.style.width = startRect.width + 'px';
+                        clone.style.height = startRect.height + 'px';
+                        clone.style.opacity = '0.9';
+                        clone.style.zIndex = '1000';
+                        clone.style.pointerEvents = 'none';
+                        clone.style.boxShadow = '0 5px 15px rgba(0,0,0,0.15)';
+                        document.body.appendChild(clone);
+                        
+                        chip.classList.add('chip-dragging');
+                        e.preventDefault();
+                    }, { passive: false });
+
+                    chip.addEventListener('touchmove', (e) => {
+                        if (this.chipDragIndex === null || !clone) return;
+                        const touch = e.touches[0];
+                        const dx = touch.clientX - touchStartX;
+                        const dy = touch.clientY - touchStartY;
+                        
+                        clone.style.transform = `translate(${dx}px, ${dy}px)`;
+                        
+                        const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                        
+                        container.querySelectorAll('.element-chip').forEach(c => c.classList.remove('chip-over'));
+                        lastOverIndex = null;
+
+                        if (element) {
+                            const overChip = element.closest('.element-chip');
+                            if (overChip && overChip !== chip) {
+                                overChip.classList.add('chip-over');
+                                const idx = parseInt(overChip.getAttribute('data-chip-index'), 10);
+                                if (!isNaN(idx)) {
+                                    lastOverIndex = idx;
+                                }
+                            }
+                        }
+                        e.preventDefault();
+                    }, { passive: false });
+
+                    const handleTouchEnd = () => {
+                        if (clone) {
+                            clone.remove();
+                            clone = null;
+                        }
+                        chip.classList.remove('chip-dragging');
+                        container.querySelectorAll('.element-chip').forEach(c => c.classList.remove('chip-over'));
+
+                        if (this.chipDragIndex !== null && lastOverIndex !== null && this.chipDragIndex !== lastOverIndex) {
+                            const moved = this.state.history.splice(this.chipDragIndex, 1)[0];
+                            this.state.history.splice(lastOverIndex, 0, moved);
+                            this.saveDefaults();
+                            this.renderChips();
+                        }
+                        this.chipDragIndex = null;
+                        lastOverIndex = null;
+                    };
+
+                    chip.addEventListener('touchend', handleTouchEnd);
+                    chip.addEventListener('touchcancel', handleTouchEnd);
 
                     container.appendChild(chip);
                 });
@@ -1246,12 +1367,8 @@
                     this.els.modal.modalPauseBtn.classList.add('hidden');
                 }
 
-                this.els.modal.datalist.innerHTML = "";
-                this.state.history.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item;
-                    this.els.modal.datalist.appendChild(opt);
-                });
+                // Render custom suggestions instead of datalist options
+                this.renderModalSuggestions("");
 
                 this.els.modal.overlay.classList.remove('hidden');
                 this.els.modal.content.classList.add('modal-enter-active');
@@ -1261,6 +1378,38 @@
             closeModal: function () {
                 this.els.modal.overlay.classList.add('hidden');
                 this.els.modal.content.classList.remove('modal-enter-active');
+            },
+
+            renderModalSuggestions: function (filterText = "") {
+                const container = this.els.modal.suggestions;
+                if (!container) return;
+
+                container.innerHTML = "";
+                const query = filterText.toLowerCase().trim();
+
+                let count = 0;
+                this.state.history.forEach(item => {
+                    if (query && !item.toLowerCase().includes(query)) return;
+                    count++;
+
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-full text-xs font-semibold btn-touch transition-colors border border-slate-200';
+                    btn.textContent = item;
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.els.modal.inputDesc.value = item;
+                        this.els.modal.inputDesc.focus();
+                        this.renderModalSuggestions(item);
+                    });
+                    container.appendChild(btn);
+                });
+
+                if (count === 0) {
+                    container.classList.add('hidden');
+                } else {
+                    container.classList.remove('hidden');
+                }
             },
 
             saveElement: function () {
