@@ -229,6 +229,17 @@
             font-size: 0.875rem;
         }
 
+        /* Header: logo | timers | operation. Fixed columns keep the timers put. */
+        .app-header {
+            grid-template-columns: auto auto minmax(0, 1fr);
+        }
+
+        @media (min-width: 640px) {
+            .app-header {
+                grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            }
+        }
+
         /* Editable sheet metadata */
         .meta-edit {
             display: inline-block;
@@ -433,11 +444,11 @@
 
     <!-- APP HEADER -->
     <header id="app-header"
-        class="bg-slate-800 text-white p-2 sm:p-3 px-3 sm:px-4 shadow-md z-10 flex justify-between items-center shrink-0 print-hidden">
-        <h1 class="text-sm sm:text-lg font-bold tracking-wider"><i class="fa-solid fa-stopwatch mr-1.5 sm:mr-2"></i>KaizenClick</h1>
+        class="app-header bg-slate-800 text-white p-2 sm:p-3 px-3 sm:px-4 shadow-md z-10 grid items-center gap-2 sm:gap-4 shrink-0 print-hidden">
+        <h1 class="col-start-1 text-sm sm:text-lg font-bold tracking-wider whitespace-nowrap"><i class="fa-solid fa-stopwatch mr-1.5 sm:mr-2"></i>KaizenClick</h1>
 
         <!-- Timer Displays (visible during capture/review) -->
-        <div id="header-timers" class="hidden items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+        <div id="header-timers" class="col-start-2 hidden items-center gap-2 sm:gap-4 text-xs sm:text-sm">
             <div class="flex items-center gap-1 sm:gap-1.5 bg-slate-700/60 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
                 <i class="fa-solid fa-clock text-slate-400 text-[10px] sm:text-xs"></i>
                 <span class="text-slate-400 text-[10px] sm:text-xs font-medium hidden sm:inline">ELAPSED</span>
@@ -450,8 +461,8 @@
             </div>
         </div>
 
-        <div id="header-op-name" class="text-[10px] sm:text-xs text-right hidden">
-            <span id="header-op" class="block font-bold text-slate-200 truncate max-w-[70px] sm:max-w-none"></span>
+        <div id="header-op-name" class="col-start-3 min-w-0 text-[10px] sm:text-xs text-right hidden">
+            <span id="header-op" class="block font-bold text-slate-200 truncate"></span>
         </div>
     </header>
 
@@ -613,6 +624,14 @@
                         <div class="text-center"><span class="block text-[10px] text-slate-500 uppercase font-bold">Takt</span><span id="sum-takt" class="font-mono font-bold">--</span></div>
                         <div class="text-right"><span class="block text-[10px] text-slate-500 uppercase font-bold">Elements</span><span id="sum-count" class="font-mono font-bold">0</span></div>
                     </div>
+                </div>
+
+                <div class="no-print flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Show</span>
+                    <button id="tog-showManpower" onclick="app.toggleOpt('showManpower')"
+                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-users mr-1"></i>Manpower</button>
+                    <button id="tog-showCumulative" onclick="app.toggleOpt('showCumulative')"
+                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-chart-simple mr-1"></i>Cumulative</button>
                 </div>
 
                 <div class="no-print px-3 py-1.5 text-[11px] text-slate-400 bg-white border-b border-gray-100">
@@ -1381,6 +1400,25 @@
                 };
             },
 
+            toggleOpt: function (key) {
+                const current = key === 'showManpower' ? this.getOpts().manpower : this.getOpts().cumulative;
+                this.state.meta[key] = !current;
+                this.renderTable();
+                this.autoSave();
+            },
+
+            renderOptToggles: function () {
+                const opts = this.getOpts();
+                const set = (id, on) => {
+                    const btn = document.getElementById(id);
+                    btn.className = 'opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch ' +
+                        (on ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-400');
+                    btn.setAttribute('aria-pressed', on);
+                };
+                set('tog-showManpower', opts.manpower);
+                set('tog-showCumulative', opts.cumulative);
+            },
+
             applySetupOptions: function () {
                 const on = document.getElementById('opt-manpower').checked;
                 document.getElementById('takt-field').classList.toggle('hidden', !on);
@@ -1926,6 +1964,7 @@
                 document.getElementById('view-study').classList.toggle('hide-cum', !opts.cumulative);
                 document.getElementById('summary-block').classList.toggle('hidden', !opts.manpower);
                 document.getElementById('meta-takt-row').classList.toggle('hidden', !opts.manpower);
+                this.renderOptToggles();
 
                 // Populate metadata
                 document.getElementById('meta-op').innerText = this.state.meta.operation || '';
