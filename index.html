@@ -663,7 +663,7 @@
             <div id="modal-live-container" class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-3 text-xs">
                 <span class="flex items-center gap-2 font-medium text-slate-600">
                     <span id="modal-live-indicator" class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span id="modal-live-status">Next split ticking:</span>
+                    <span id="modal-live-status">Clock running · next split:</span>
                 </span>
                 <span id="modal-live-split" class="font-mono font-bold text-emerald-600 text-sm">0:00</span>
             </div>
@@ -1357,7 +1357,7 @@
                         this.els.modal.liveIndicator.className = 'inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
                     }
                     if (this.els.modal.liveStatus) {
-                        this.els.modal.liveStatus.innerText = 'Next split ticking:';
+                        this.els.modal.liveStatus.innerText = 'Clock running · next split:';
                     }
                 } else {
                     this.els.modal.modalPauseBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> RESUME TIMER';
@@ -1367,7 +1367,7 @@
                         this.els.modal.liveIndicator.className = 'inline-block w-2.5 h-2.5 rounded-full bg-amber-500';
                     }
                     if (this.els.modal.liveStatus) {
-                        this.els.modal.liveStatus.innerText = 'Next split paused:';
+                        this.els.modal.liveStatus.innerText = 'Clock paused · next split:';
                     }
                 }
             },
