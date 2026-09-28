@@ -708,9 +708,9 @@
             <i class="fa-solid fa-rotate-left sm:mr-1"></i><span class="hidden sm:inline">New</span>
         </button>
         <div class="flex items-center gap-1.5">
-            <button onclick="app.exportExcel()"
-                class="bg-white border border-slate-300 text-green-700 px-3 py-2 rounded-lg font-bold text-sm btn-touch" title="Export XLSX">
-                <i class="fa-solid fa-file-excel"></i><span class="hidden sm:inline ml-1.5">Excel</span>
+            <button onclick="app.shareStudy()"
+                class="bg-white border border-slate-300 text-blue-700 px-3 py-2 rounded-lg font-bold text-sm btn-touch" title="Share (email, messages, drive...)">
+                <i class="fa-solid fa-share-nodes"></i><span class="hidden sm:inline ml-1.5">Share</span>
             </button>
             <button onclick="window.print()"
                 class="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg font-bold text-sm btn-touch" title="Print / PDF">
@@ -2092,7 +2092,7 @@
             },
 
             // --- LOGIC: EXPORT ---
-            exportExcel: function () {
+            buildWorkbook: function () {
                 const totalSec = this.state.observations.reduce((acc, curr) => acc + curr.duration, 0);
                 const taktTimeMinutes = parseFloat(this.state.meta.taktTime) || 0;
                 let manpower = taktTimeMinutes > 0 ? (totalSec / (taktTimeMinutes * 60)) : 0;
@@ -2122,7 +2122,46 @@
                 ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 20 }];
                 XLSX.utils.book_append_sheet(wb, ws, "Time Study");
                 const filename = `TimeStudy_${this.state.meta.operation.replace(/\s+/g, '_')}_${this.state.meta.date}.xlsx`;
+                return { wb, filename };
+            },
+
+            exportExcel: function () {
+                const { wb, filename } = this.buildWorkbook();
                 XLSX.writeFile(wb, filename);
+            },
+
+            // Share via the device share sheet (email, messages, drive...). Falls back to a download.
+            shareStudy: async function () {
+                const meta = this.state.meta;
+                const { wb, filename } = this.buildWorkbook();
+                const subject = `${meta.operation} | Time Study Sheet`;
+
+                const total = this.state.observations.reduce((acc, o) => acc + o.duration, 0);
+                const lines = [
+                    subject,
+                    `Operator: ${meta.operatorName || '-'}  |  Date: ${meta.date || '-'}`,
+                    `Elements: ${this.state.observations.length}  |  Total time: ${this.secondsToMMSS(total)}`
+                ];
+                const taktMin = parseFloat(meta.taktTime) || 0;
+                if (this.getOpts().manpower && taktMin > 0) {
+                    lines.push(`TAKT: ${this.secondsToMMSS(taktMin * 60)}  |  Manpower: ${(total / (taktMin * 60)).toFixed(2)} operators`);
+                }
+
+                try {
+                    const bytes = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                    const file = new File([bytes], filename, {
+                        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                    });
+                    const data = { title: subject, text: lines.join('\n'), files: [file] };
+                    if (navigator.canShare && navigator.canShare(data)) {
+                        await navigator.share(data);
+                        return;
+                    }
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return; // user closed the share sheet
+                    console.warn('share failed, falling back to download:', e);
+                }
+                this.exportExcel();
             },
         };
 
