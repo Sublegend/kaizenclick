@@ -229,6 +229,35 @@
             font-size: 0.875rem;
         }
 
+        /* Editable sheet metadata */
+        .meta-edit {
+            display: inline-block;
+            min-width: 3rem;
+            border-bottom: 1px dashed #9ca3af;
+            outline: none;
+            border-radius: 2px;
+        }
+
+        .meta-edit:focus {
+            background: #fefce8;
+            border-bottom-color: #eab308;
+        }
+
+        .meta-edit:empty::before {
+            content: attr(data-placeholder);
+            color: #cbd5e1;
+        }
+
+        @media print {
+            .meta-edit:empty::before {
+                content: '';
+            }
+
+            input.meta-edit::-webkit-calendar-picker-indicator {
+                display: none;
+            }
+        }
+
         /* Optional cumulative column */
         .hide-cum .col-cum,
         .hide-cum .cum-cell {
@@ -536,19 +565,28 @@
                         class="text-base sm:text-xl font-extrabold text-slate-800 mb-2 sm:mb-3 uppercase tracking-wide print:text-lg print:mb-2">
                         Time Study Sheet</h2>
                     <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-xs sm:text-sm print:text-xs">
-                        <p class="font-semibold col-span-2">Operation: <span id="meta-op"
-                                class="font-normal border-b border-dashed border-gray-400"></span></p>
-                        <p class="font-semibold">Date: <span id="meta-date"
-                                class="font-normal border-b border-dashed border-gray-400"></span></p>
-                        <p class="font-semibold">Operator: <span id="meta-operator"
-                                class="font-normal border-b border-dashed border-gray-400"></span></p>
-                        <p class="font-semibold">Analyst: <span id="meta-analyst"
-                                class="font-normal border-b border-dashed border-gray-400"></span></p>
-                        <p class="font-semibold">Department: <span id="meta-dept"
-                                class="font-normal border-b border-dashed border-gray-400"></span></p>
-                        <p id="meta-takt-row" class="font-semibold">TAKT Time: <span id="meta-takt"
-                                class="font-normal border-b border-dashed border-gray-400"></span> min</p>
-                        
+                        <p class="font-semibold col-span-2">Operation: <span id="meta-op" class="meta-edit font-normal"
+                                contenteditable="true" data-placeholder="tap to add"
+                                onblur="app.updateMeta('operation', this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
+                        <p class="font-semibold">Date: <input type="date" id="meta-date" class="meta-edit font-normal bg-transparent"
+                                onchange="app.updateMeta('date', this)"></p>
+                        <p class="font-semibold">Operator: <span id="meta-operator" class="meta-edit font-normal"
+                                contenteditable="true" data-placeholder="tap to add"
+                                onblur="app.updateMeta('operatorName', this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
+                        <p class="font-semibold">Analyst: <span id="meta-analyst" class="meta-edit font-normal"
+                                contenteditable="true" data-placeholder="tap to add"
+                                onblur="app.updateMeta('documentedBy', this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
+                        <p class="font-semibold">Department: <span id="meta-dept" class="meta-edit font-normal"
+                                contenteditable="true" data-placeholder="tap to add"
+                                onblur="app.updateMeta('department', this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
+                        <p id="meta-takt-row" class="font-semibold">TAKT Time: <span id="meta-takt" class="meta-edit font-normal"
+                                contenteditable="true" inputmode="decimal" data-placeholder="tap to add"
+                                onblur="app.updateMeta('taktTime', this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span> min</p>
                     </div>
                 </div>
 
@@ -1833,6 +1871,30 @@
             },
 
             // --- LOGIC: EDIT HANDLERS ---
+            // Edit sheet metadata in place. Setup defaults (kaizen_meta) are left untouched.
+            updateMeta: function (key, el) {
+                const meta = this.state.meta;
+                const raw = (el.tagName === 'INPUT' ? el.value : el.innerText).trim();
+                const required = key === 'operation' || key === 'operatorName' || key === 'date';
+                let value = raw;
+
+                if (key === 'taktTime') {
+                    const n = parseFloat(raw);
+                    if (raw !== '' && !(n > 0)) value = meta.taktTime;
+                    else value = raw === '' ? '' : String(n);
+                } else if (required && raw === '') {
+                    value = meta[key];
+                }
+
+                meta[key] = value;
+                if (el.tagName === 'INPUT') el.value = value || '';
+                else el.innerText = value || '';
+
+                if (key === 'operation') this.els.header.op.innerText = value;
+                if (key === 'taktTime') this.renderTable(); // manpower depends on TAKT
+                this.autoSave();
+            },
+
             updateDesc: function (index, el) {
                 const newText = el.innerText.trim();
                 this.state.observations[index].description = newText || "Unlabeled Element";
@@ -1871,7 +1933,7 @@
                 document.getElementById('meta-dept').innerText = this.state.meta.department || '';
                 document.getElementById('meta-takt').innerText = this.state.meta.taktTime || '';
                 document.getElementById('meta-analyst').innerText = this.state.meta.documentedBy || '';
-                document.getElementById('meta-date').innerText = this.state.meta.date || '';
+                document.getElementById('meta-date').value = this.state.meta.date || '';
 
                 this.state.observations.forEach((obs, index) => {
                     totalElementTime += obs.duration;
