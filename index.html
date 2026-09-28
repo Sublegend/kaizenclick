@@ -229,6 +229,12 @@
             font-size: 0.875rem;
         }
 
+        /* Optional cumulative column */
+        .hide-cum .col-cum,
+        .hide-cum .cum-cell {
+            display: none;
+        }
+
         /* Summary block: TAKT vs total */
         .sum-track {
             position: relative;
@@ -437,13 +443,29 @@
                             placeholder="e.g. Widget Assembly">
                     </div>
 
-                    <div class="col-span-2">
+                    <div id="takt-field" class="col-span-2">
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Takt Time (min)
                             <span class="normal-case font-normal text-gray-400 ml-1">(sets required manpower)</span>
                         </label>
                         <input type="number" id="input-takt"
                             class="w-full border rounded p-3 text-lg focus:ring-2 ring-blue-500 outline-none" placeholder="1.0">
                     </div>
+                </div>
+
+                <!-- Sheet options -->
+                <div class="border-t pt-4">
+                    <div class="text-xs font-bold text-gray-400 uppercase mb-2">Sheet Options</div>
+                    <label class="flex items-start gap-3 py-1.5 cursor-pointer">
+                        <input type="checkbox" id="opt-manpower" class="mt-1 w-5 h-5 accent-blue-600" checked
+                            onchange="app.applySetupOptions()">
+                        <span class="text-sm"><span class="font-semibold text-slate-700">Manpower / TAKT</span>
+                            <span class="block text-xs text-gray-400">TAKT field, manpower figure and TAKT bar</span></span>
+                    </label>
+                    <label class="flex items-start gap-3 py-1.5 cursor-pointer">
+                        <input type="checkbox" id="opt-cumulative" class="mt-1 w-5 h-5 accent-blue-600" checked>
+                        <span class="text-sm"><span class="font-semibold text-slate-700">Cumulative time &amp; duration bars</span>
+                            <span class="block text-xs text-gray-400">Running total column and per-element bars</span></span>
+                    </label>
                 </div>
 
                 <!-- Sheet details: metadata only -->
@@ -524,7 +546,7 @@
                                 class="font-normal border-b border-dashed border-gray-400"></span></p>
                         <p class="font-semibold">Department: <span id="meta-dept"
                                 class="font-normal border-b border-dashed border-gray-400"></span></p>
-                        <p class="font-semibold">TAKT Time: <span id="meta-takt"
+                        <p id="meta-takt-row" class="font-semibold">TAKT Time: <span id="meta-takt"
                                 class="font-normal border-b border-dashed border-gray-400"></span> min</p>
                         
                     </div>
@@ -574,7 +596,7 @@
                                 <th class="text-left">#</th>
                                 <th class="text-left">Element</th>
                                 <th class="text-right">Time</th>
-                                <th class="text-right">Cum.</th>
+                                <th class="text-right cum-cell">Cum.</th>
                                 <th class="text-center no-print">Act</th>
                             </tr>
                         </thead>
@@ -585,7 +607,7 @@
                             <tr>
                                 <td colspan="2" class="text-slate-700">TOTAL</td>
                                 <td class="text-right font-mono" id="total-element-time">0:00</td>
-                                <td class="text-right font-mono text-slate-400 text-xs" id="total-cum-time"></td>
+                                <td class="text-right font-mono text-slate-400 text-xs cum-cell" id="total-cum-time"></td>
                                 <td class="no-print"></td>
                             </tr>
 
@@ -1003,8 +1025,11 @@
                         this.els.inputs.dept.value = meta.department || '';
                         this.els.inputs.takt.value = meta.taktTime || '';
                         this.els.inputs.analyst.value = meta.documentedBy || '';
+                        document.getElementById('opt-manpower').checked = meta.showManpower !== false;
+                        document.getElementById('opt-cumulative').checked = meta.showCumulative !== false;
                     } catch (e) { /* ignore */ }
                 }
+                this.applySetupOptions();
 
                 // Check for session recovery
                 const saved = this.loadSession();
@@ -1308,6 +1333,21 @@
                 } catch (e) { /* silent */ }
             },
 
+            // --- SHEET OPTIONS ---
+            // Older sessions have no option flags: default everything on.
+            getOpts: function () {
+                const m = this.state.meta || {};
+                return {
+                    manpower: m.showManpower !== false,
+                    cumulative: m.showCumulative !== false
+                };
+            },
+
+            applySetupOptions: function () {
+                const on = document.getElementById('opt-manpower').checked;
+                document.getElementById('takt-field').classList.toggle('hidden', !on);
+            },
+
             // --- LOGIC: SETUP & START ---
             startStudy: function () {
                 const opInput = this.els.inputs.op;
@@ -1322,7 +1362,9 @@
                     department: this.els.inputs.dept.value,
                     taktTime: this.els.inputs.takt.value,
                     documentedBy: this.els.inputs.analyst.value,
-                    date: this.els.inputs.date.value
+                    date: this.els.inputs.date.value,
+                    showManpower: document.getElementById('opt-manpower').checked,
+                    showCumulative: document.getElementById('opt-cumulative').checked
                 };
 
                 if (!meta.operation || !meta.operatorName) {
@@ -1817,6 +1859,11 @@
                 tbody.innerHTML = "";
                 let totalElementTime = 0;
                 const maxDuration = Math.max(0, ...this.state.observations.map(o => o.duration));
+                const opts = this.getOpts();
+
+                document.getElementById('view-study').classList.toggle('hide-cum', !opts.cumulative);
+                document.getElementById('summary-block').classList.toggle('hidden', !opts.manpower);
+                document.getElementById('meta-takt-row').classList.toggle('hidden', !opts.manpower);
 
                 // Populate metadata
                 document.getElementById('meta-op').innerText = this.state.meta.operation || '';
@@ -1828,7 +1875,7 @@
 
                 this.state.observations.forEach((obs, index) => {
                     totalElementTime += obs.duration;
-                    const pct = maxDuration > 0 ? Math.round((obs.duration / maxDuration) * 100) : 0;
+                    const pct = opts.cumulative && maxDuration > 0 ? Math.round((obs.duration / maxDuration) * 100) : 0;
                     const isLongest = obs.duration === maxDuration && this.state.observations.length > 1;
                     const barColor = isLongest ? '#bfdbfe' : '#e2e8f0';
                     const tr = document.createElement('tr');
@@ -1856,7 +1903,7 @@
                             title="Click to edit time (MM:SS or seconds)">
                             ${this.secondsToMMSS(obs.duration)}
                         </td>
-                        <td class="text-right font-mono text-slate-400 text-xs select-none">${this.secondsToMMSS(totalElementTime)}</td>
+                        <td class="text-right font-mono text-slate-400 text-xs select-none cum-cell">${this.secondsToMMSS(totalElementTime)}</td>
                         <td class="text-center no-print">
                             <button onclick="app.triggerDeleteRow(${index})" class="text-red-400 hover:text-red-600 px-1 transition-colors btn-touch" title="Delete Row"><i class="fa-solid fa-trash text-xs"></i></button>
                         </td>
@@ -1952,13 +1999,15 @@
                 // Include elapsed time in export
                 const elapsedSecs = this.state.totalElapsedAtEnd > 0 ? Math.round(this.state.totalElapsedAtEnd / 1000) : 0;
 
+                const showMp = this.getOpts().manpower;
                 const meta = [
-                    ["Standard Work Combination Sheet"], [""],
+                    ["Time Study Sheet"], [""],
                     ["Operator:", this.state.meta.operatorName, "", "Date:", this.state.meta.date],
                     ["Operation:", this.state.meta.operation],
-                    ["Dept:", this.state.meta.department, "", "TAKT Time (min):", this.state.meta.taktTime],
+                    showMp ? ["Dept:", this.state.meta.department, "", "TAKT Time (min):", this.state.meta.taktTime]
+                           : ["Dept:", this.state.meta.department],
                     ["Analyst:", this.state.meta.documentedBy],
-                    ["Manpower Required:", manpower.toFixed(2), "Op(s)"],
+                    ...(showMp ? [["Manpower Required:", manpower.toFixed(2), "Op(s)"]] : []),
                     [],
                     ["#", "Work Element Description", "Time (MM:SS) - Raw Seconds"]
                 ];
