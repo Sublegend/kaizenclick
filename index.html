@@ -1381,13 +1381,14 @@
                 const now = Date.now();
 
                 let durationSec = (now - this.state.currentSplitStart) / 1000;
-                // Round UP to the nearest 15-second mark
-                const roundedDurationSec = Math.ceil(durationSec / 15) * 15;
+                // Round to the nearest 15-second mark (min 15 seconds)
+                const roundedDurationSec = Math.max(15, Math.round(durationSec / 15) * 15);
 
                 // Save previous split start in case modal is cancelled
                 this.state.previousSplitStart = this.state.currentSplitStart;
-                // Next split starts immediately at split trigger time and continues ticking
-                this.state.currentSplitStart = now;
+                // Next split starts immediately, phase-locked to elapsed timer tick
+                const elapsedSec = Math.floor(this.getElapsedMs() / 1000);
+                this.state.currentSplitStart = this.state.startTime + (elapsedSec * 1000);
 
                 this.openModal(roundedDurationSec, 'timer');
                 this.updateHeaderTimers();
@@ -1678,8 +1679,9 @@
 
                 // Reconstruct timer from stored elapsed
                 const elapsedMs = this.state.totalElapsedAtEnd || this.getElapsedMs();
+                const elapsedSec = Math.floor(elapsedMs / 1000);
                 this.state.startTime = now - elapsedMs;
-                this.state.currentSplitStart = now; // Fresh split timer
+                this.state.currentSplitStart = this.state.startTime + (elapsedSec * 1000);
                 this.state.previousSplitStart = null;
                 this.state.isRunning = false;
                 this.state.isPaused = true;
