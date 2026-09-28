@@ -269,6 +269,31 @@
             }
         }
 
+        /* Per-element notes (second line under the element name) */
+        .note-edit {
+            font-size: 0.6875rem;
+            color: #64748b;
+            min-height: 1.15em;
+            outline: none;
+            border-radius: 2px;
+        }
+
+        .note-edit:focus {
+            background: #fefce8;
+        }
+
+        .note-edit:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            opacity: 0.6;
+        }
+
+        @media print {
+            .note-edit:empty {
+                display: none;
+            }
+        }
+
         /* Optional cumulative column */
         .hide-cum .col-cum,
         .hide-cum .cum-cell {
@@ -506,6 +531,24 @@
                         <span class="text-sm"><span class="font-semibold text-slate-700">Cumulative time &amp; duration bars</span>
                             <span class="block text-xs text-gray-400">Running total column and per-element bars</span></span>
                     </label>
+                    <label class="flex items-start gap-3 py-1.5 cursor-pointer">
+                        <input type="checkbox" id="opt-notes" class="mt-1 w-5 h-5 accent-blue-600">
+                        <span class="text-sm"><span class="font-semibold text-slate-700">Element notes</span>
+                            <span class="block text-xs text-gray-400">A note line under each element</span></span>
+                    </label>
+                </div>
+
+                <!-- Split rounding -->
+                <div class="border-t pt-4">
+                    <div class="text-xs font-bold text-gray-400 uppercase mb-2">Round Splits To</div>
+                    <div class="flex gap-2" id="opt-round-group">
+                        <label class="flex-1 cursor-pointer"><input type="radio" name="opt-round" value="15" class="peer sr-only" checked>
+                            <span class="block text-center py-2 rounded-lg border text-sm font-bold bg-white text-slate-600 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">15 sec</span></label>
+                        <label class="flex-1 cursor-pointer"><input type="radio" name="opt-round" value="5" class="peer sr-only">
+                            <span class="block text-center py-2 rounded-lg border text-sm font-bold bg-white text-slate-600 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">5 sec</span></label>
+                        <label class="flex-1 cursor-pointer"><input type="radio" name="opt-round" value="1" class="peer sr-only">
+                            <span class="block text-center py-2 rounded-lg border text-sm font-bold bg-white text-slate-600 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">1 sec</span></label>
+                    </div>
                 </div>
 
                 <!-- Sheet details: metadata only -->
@@ -535,6 +578,9 @@
                             <input type="date" id="input-date" class="w-full border rounded p-2.5 text-sm bg-gray-50">
                         </div>
                     </div>
+                    <div id="setup-custom" class="space-y-2 mt-3"></div>
+                    <button type="button" onclick="app.addSetupField()" class="mt-2 text-xs font-bold text-blue-600 btn-touch">
+                        <i class="fa-solid fa-plus mr-1"></i>Add field</button>
                 </div>
 
                 <!-- Default Elements Chip List -->
@@ -598,7 +644,10 @@
                                 contenteditable="true" inputmode="decimal" data-placeholder="tap to add"
                                 onblur="app.updateMeta('taktTime', this)"
                                 onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span> min</p>
+                        <div id="meta-custom" class="contents"></div>
                     </div>
+                    <button onclick="app.addCustomField()" class="no-print mt-2 text-[11px] font-bold text-blue-600 btn-touch">
+                        <i class="fa-solid fa-plus mr-1"></i>Field</button>
                 </div>
 
                 <!-- Summary: total vs TAKT -> manpower -->
@@ -626,12 +675,14 @@
                     </div>
                 </div>
 
-                <div class="no-print flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
+                <div class="no-print flex flex-wrap items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Show</span>
                     <button id="tog-showManpower" onclick="app.toggleOpt('showManpower')"
                         class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-users mr-1"></i>Manpower</button>
                     <button id="tog-showCumulative" onclick="app.toggleOpt('showCumulative')"
                         class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-chart-simple mr-1"></i>Cumulative</button>
+                    <button id="tog-showNotes" onclick="app.toggleOpt('showNotes')"
+                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-note-sticky mr-1"></i>Notes</button>
                 </div>
 
                 <div class="no-print px-3 py-1.5 text-[11px] text-slate-400 bg-white border-b border-gray-100">
@@ -1084,6 +1135,10 @@
                         this.els.inputs.analyst.value = meta.documentedBy || '';
                         document.getElementById('opt-manpower').checked = meta.showManpower !== false;
                         document.getElementById('opt-cumulative').checked = meta.showCumulative !== false;
+                        document.getElementById('opt-notes').checked = meta.showNotes === true;
+                        const roundRadio = document.querySelector(`input[name="opt-round"][value="${meta.roundTo}"]`);
+                        if (roundRadio) roundRadio.checked = true;
+                        (meta.custom || []).forEach(f => this.addSetupField(f.label, f.value));
                     } catch (e) { /* ignore */ }
                 }
                 this.applySetupOptions();
@@ -1396,13 +1451,14 @@
                 const m = this.state.meta || {};
                 return {
                     manpower: m.showManpower !== false,
-                    cumulative: m.showCumulative !== false
+                    cumulative: m.showCumulative !== false,
+                    notes: m.showNotes === true
                 };
             },
 
             toggleOpt: function (key) {
-                const current = key === 'showManpower' ? this.getOpts().manpower : this.getOpts().cumulative;
-                this.state.meta[key] = !current;
+                const names = { showManpower: 'manpower', showCumulative: 'cumulative', showNotes: 'notes' };
+                this.state.meta[key] = !this.getOpts()[names[key]];
                 this.renderTable();
                 this.autoSave();
             },
@@ -1417,6 +1473,67 @@
                 };
                 set('tog-showManpower', opts.manpower);
                 set('tog-showCumulative', opts.cumulative);
+                set('tog-showNotes', opts.notes);
+            },
+
+            // --- CUSTOM HEADER FIELDS ---
+            addSetupField: function (label = '', value = '') {
+                const row = document.createElement('div');
+                row.className = 'flex gap-2 items-center setup-field';
+                row.innerHTML = `
+                    <input type="text" class="sf-label flex-1 min-w-0 border rounded p-2.5 text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="Field name (e.g. Part No.)" value="${this.escapeHtml(label)}">
+                    <input type="text" class="sf-value flex-1 min-w-0 border rounded p-2.5 text-sm focus:ring-2 ring-blue-500 outline-none" placeholder="Value" value="${this.escapeHtml(value)}">
+                    <button type="button" class="text-gray-300 hover:text-red-500 px-1 btn-touch" title="Remove field"><i class="fa-solid fa-xmark"></i></button>`;
+                row.querySelector('button').onclick = () => row.remove();
+                document.getElementById('setup-custom').appendChild(row);
+            },
+
+            readSetupFields: function () {
+                return Array.from(document.querySelectorAll('#setup-custom .setup-field'))
+                    .map(r => ({
+                        label: r.querySelector('.sf-label').value.trim(),
+                        value: r.querySelector('.sf-value').value.trim()
+                    }))
+                    .filter(f => f.label);
+            },
+
+            renderCustomMeta: function () {
+                const keys = "if(event.key==='Enter'){event.preventDefault();this.blur()}";
+                document.getElementById('meta-custom').innerHTML = (this.state.meta.custom || []).map((f, i) => `
+                    <p class="font-semibold"><span class="meta-edit !min-w-0 font-semibold" contenteditable="true" data-placeholder="label"
+                        onblur="app.updateCustom(${i}, 'label', this)" onkeydown="${keys}">${this.escapeHtml(f.label)}</span>: <span class="meta-edit font-normal" contenteditable="true" data-placeholder="value"
+                        onblur="app.updateCustom(${i}, 'value', this)" onkeydown="${keys}">${this.escapeHtml(f.value)}</span><button
+                        class="no-print ml-1 text-slate-300 hover:text-red-500 btn-touch" title="Remove field"
+                        onclick="app.removeCustomField(${i})"><i class="fa-solid fa-xmark text-[10px]"></i></button></p>`).join('');
+            },
+
+            addCustomField: function () {
+                if (!this.state.meta.custom) this.state.meta.custom = [];
+                this.state.meta.custom.push({ label: '', value: '' });
+                this.renderCustomMeta();
+                const labels = document.querySelectorAll('#meta-custom [data-placeholder="label"]');
+                if (labels.length) labels[labels.length - 1].focus();
+                this.autoSave();
+            },
+
+            updateCustom: function (i, part, el) {
+                const f = (this.state.meta.custom || [])[i];
+                if (!f) return;
+                f[part] = el.innerText.trim();
+                if (!f.label && !f.value) {
+                    this.state.meta.custom.splice(i, 1); // both empty: drop the field
+                    this.renderCustomMeta();
+                } else if (!f.label) {
+                    f.label = 'Field';
+                    el.innerText = f.label;
+                }
+                this.autoSave();
+            },
+
+            removeCustomField: function (i) {
+                this.state.meta.custom.splice(i, 1);
+                this.renderCustomMeta();
+                this.autoSave();
             },
 
             applySetupOptions: function () {
@@ -1440,7 +1557,10 @@
                     documentedBy: this.els.inputs.analyst.value,
                     date: this.els.inputs.date.value,
                     showManpower: document.getElementById('opt-manpower').checked,
-                    showCumulative: document.getElementById('opt-cumulative').checked
+                    showCumulative: document.getElementById('opt-cumulative').checked,
+                    showNotes: document.getElementById('opt-notes').checked,
+                    roundTo: parseInt(document.querySelector('input[name="opt-round"]:checked').value, 10) || 15,
+                    custom: this.readSetupFields()
                 };
 
                 if (!meta.operation || !meta.operatorName) {
@@ -1561,8 +1681,9 @@
                 const now = Date.now();
 
                 let durationSec = (now - this.state.currentSplitStart) / 1000;
-                // Round to the nearest 15-second mark (min 15 seconds)
-                const roundedDurationSec = Math.max(15, Math.round(durationSec / 15) * 15);
+                // Round to the chosen step (15/5/1 sec, minimum one step)
+                const step = this.state.meta.roundTo || 15;
+                const roundedDurationSec = Math.max(step, Math.round(durationSec / step) * step);
 
                 // Save previous split start in case modal is cancelled
                 this.state.previousSplitStart = this.state.currentSplitStart;
@@ -1933,6 +2054,12 @@
                 this.autoSave();
             },
 
+            updateNote: function (index, el) {
+                this.state.observations[index].note = el.innerText.trim();
+                el.innerText = this.state.observations[index].note;
+                this.autoSave();
+            },
+
             updateDesc: function (index, el) {
                 const newText = el.innerText.trim();
                 this.state.observations[index].description = newText || "Unlabeled Element";
@@ -1965,6 +2092,7 @@
                 document.getElementById('summary-block').classList.toggle('hidden', !opts.manpower);
                 document.getElementById('meta-takt-row').classList.toggle('hidden', !opts.manpower);
                 this.renderOptToggles();
+                this.renderCustomMeta();
 
                 // Populate metadata
                 document.getElementById('meta-op').innerText = this.state.meta.operation || '';
@@ -1989,13 +2117,16 @@
                                 <span class="font-bold text-gray-700 text-sm">${index + 1}</span>
                             </div>
                         </td>
-                        <td class="font-medium outline-none focus:!bg-yellow-50 focus:ring-2 focus:ring-yellow-200 rounded cursor-text break-words whitespace-normal"
-                            style="background: linear-gradient(to right, ${barColor} ${pct}%, transparent ${pct}%)"
-                            contenteditable="true"
-                            onblur="app.updateDesc(${index}, this)"
-                            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
-                            title="Click to edit description">
-                            ${this.escapeHtml(obs.description)}
+                        <td style="background: linear-gradient(to right, ${barColor} ${pct}%, transparent ${pct}%)">
+                            <div class="font-medium outline-none focus:!bg-yellow-50 focus:ring-2 focus:ring-yellow-200 rounded cursor-text break-words whitespace-normal"
+                                contenteditable="true"
+                                onblur="app.updateDesc(${index}, this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
+                                title="Click to edit description">${this.escapeHtml(obs.description)}</div>
+                            ${opts.notes ? `<div class="note-edit break-words whitespace-normal" contenteditable="true"
+                                data-placeholder="+ note"
+                                onblur="app.updateNote(${index}, this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}">${this.escapeHtml(obs.note || '')}</div>` : ''}
                         </td>
                         <td class="text-right font-mono select-none outline-none focus:bg-yellow-50 focus:ring-2 focus:ring-yellow-200 rounded cursor-text"
                             contenteditable="true"
@@ -2101,6 +2232,8 @@
                 const elapsedSecs = this.state.totalElapsedAtEnd > 0 ? Math.round(this.state.totalElapsedAtEnd / 1000) : 0;
 
                 const showMp = this.getOpts().manpower;
+                const showNotes = this.getOpts().notes;
+                const customRows = (this.state.meta.custom || []).map(f => [f.label + ":", f.value]);
                 const meta = [
                     ["Time Study Sheet"], [""],
                     ["Operator:", this.state.meta.operatorName, "", "Date:", this.state.meta.date],
@@ -2108,18 +2241,19 @@
                     showMp ? ["Dept:", this.state.meta.department, "", "TAKT Time (min):", this.state.meta.taktTime]
                            : ["Dept:", this.state.meta.department],
                     ["Analyst:", this.state.meta.documentedBy],
+                    ...customRows,
                     ...(showMp ? [["Manpower Required:", manpower.toFixed(2), "Op(s)"]] : []),
                     [],
-                    ["#", "Work Element Description", "Time (MM:SS) - Raw Seconds"]
+                    ["#", "Work Element Description", "Time (MM:SS) - Raw Seconds", ...(showNotes ? ["Notes"] : [])]
                 ];
 
-                const rows = this.state.observations.map((obs, i) => [i + 1, obs.description, obs.duration.toFixed(2)]);
+                const rows = this.state.observations.map((obs, i) => [i + 1, obs.description, obs.duration.toFixed(2), ...(showNotes ? [obs.note || ''] : [])]);
                 rows.push(["", "TOTAL ELEMENT TIME", totalSec.toFixed(2)]);
                 rows.push(["", "TOTAL ELAPSED TIME", elapsedSecs.toFixed(2)]);
                 const wsData = [...meta, ...rows];
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
-                ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 20 }];
+                ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 20 }, ...(showNotes ? [{ wch: 40 }] : [])];
                 XLSX.utils.book_append_sheet(wb, ws, "Time Study");
                 const filename = `TimeStudy_${this.state.meta.operation.replace(/\s+/g, '_')}_${this.state.meta.date}.xlsx`;
                 return { wb, filename };
