@@ -591,10 +591,19 @@
         class="hidden fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm">
         <div id="modal-content" class="bg-white w-full max-w-md rounded-xl p-6 shadow-2xl modal-enter">
 
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-center mb-3">
                 <h3 class="text-lg font-bold text-gray-700">Element #<span id="modal-id">1</span> Captured</h3>
                 <span id="modal-time"
                     class="bg-slate-100 text-slate-800 px-3 py-1 rounded font-mono font-bold">0:00</span>
+            </div>
+
+            <!-- Live Split Progress Indicator (visible only during timer capture) -->
+            <div id="modal-live-container" class="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-3 text-xs">
+                <span class="flex items-center gap-2 font-medium text-slate-600">
+                    <span id="modal-live-indicator" class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="modal-live-status">Next split ticking:</span>
+                </span>
+                <span id="modal-live-split" class="font-mono font-bold text-emerald-600 text-sm">0:00</span>
             </div>
 
             <!-- Pause Button inside Modal (visible only during capture) -->
@@ -679,6 +688,7 @@
                 startTime: null,
                 lastSplitTime: null,
                 currentSplitStart: null,
+                previousSplitStart: null,
                 pauseTime: 0,
                 pauseStart: null,
                 phase: 'setup', // 'setup' | 'capture' | 'review'
@@ -752,6 +762,10 @@
                     confirmCancelBtn: document.getElementById('confirm-cancel-btn'),
                     confirmModal: document.getElementById('modal-verify'),
                     modalPauseBtn: document.getElementById('modal-pause-btn'),
+                    liveContainer: document.getElementById('modal-live-container'),
+                    liveIndicator: document.getElementById('modal-live-indicator'),
+                    liveStatus: document.getElementById('modal-live-status'),
+                    liveSplit: document.getElementById('modal-live-split'),
                     recoveryModal: document.getElementById('modal-recovery'),
                     recoveryInfo: document.getElementById('recovery-info')
                 },
@@ -1073,8 +1087,12 @@
                 const splitTotalSecs = Math.floor(splitMs / 1000);
                 const splitMins = Math.floor(splitTotalSecs / 60);
                 const splitSecs = splitTotalSecs % 60;
-                this.els.header.split.innerText =
-                    `${splitMins}:${splitSecs.toString().padStart(2, '0')}`;
+                const formattedSplit = `${splitMins}:${splitSecs.toString().padStart(2, '0')}`;
+                this.els.header.split.innerText = formattedSplit;
+
+                if (this.els.modal.liveSplit && this.state.modalMode === 'timer' && !this.els.modal.overlay.classList.contains('hidden')) {
+                    this.els.modal.liveSplit.innerText = formattedSplit;
+                }
             },
 
             // --- CHIP / DEFAULT ELEMENTS MANAGEMENT ---
@@ -1258,6 +1276,7 @@
                 this.state.isPaused = false;
                 this.state.startTime = Date.now();
                 this.state.currentSplitStart = Date.now();
+                this.state.previousSplitStart = null;
                 this.state.observations = [];
                 this.state.totalElapsedAtEnd = 0;
 
@@ -1272,10 +1291,22 @@
                     this.els.modal.modalPauseBtn.innerHTML = '<i class="fa-solid fa-pause mr-2"></i> PAUSE TIMER';
                     this.els.modal.modalPauseBtn.classList.remove('bg-green-400', 'hover:bg-green-500');
                     this.els.modal.modalPauseBtn.classList.add('bg-amber-400', 'hover:bg-amber-500');
+                    if (this.els.modal.liveIndicator) {
+                        this.els.modal.liveIndicator.className = 'inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+                    }
+                    if (this.els.modal.liveStatus) {
+                        this.els.modal.liveStatus.innerText = 'Next split ticking:';
+                    }
                 } else {
                     this.els.modal.modalPauseBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i> RESUME TIMER';
                     this.els.modal.modalPauseBtn.classList.remove('bg-amber-400', 'hover:bg-amber-500');
                     this.els.modal.modalPauseBtn.classList.add('bg-green-400', 'hover:bg-green-500');
+                    if (this.els.modal.liveIndicator) {
+                        this.els.modal.liveIndicator.className = 'inline-block w-2.5 h-2.5 rounded-full bg-amber-500';
+                    }
+                    if (this.els.modal.liveStatus) {
+                        this.els.modal.liveStatus.innerText = 'Next split paused:';
+                    }
                 }
             },
 
@@ -1318,6 +1349,9 @@
                     this.state.pauseTime += pauseDuration;
                     this.state.startTime += pauseDuration;
                     this.state.currentSplitStart += pauseDuration;
+                    if (this.state.previousSplitStart !== null) {
+                        this.state.previousSplitStart += pauseDuration;
+                    }
                     this.state.pauseStart = null;
 
                     splitBtn.disabled = false;
@@ -1329,6 +1363,7 @@
 
                 this.updatePauseButton();
                 this.updateModalPauseButton();
+                this.updateHeaderTimers();
                 this.autoSave();
             },
 
@@ -1349,7 +1384,13 @@
                 // Round UP to the nearest 15-second mark
                 const roundedDurationSec = Math.ceil(durationSec / 15) * 15;
 
+                // Save previous split start in case modal is cancelled
+                this.state.previousSplitStart = this.state.currentSplitStart;
+                // Next split starts immediately at split trigger time and continues ticking
+                this.state.currentSplitStart = now;
+
                 this.openModal(roundedDurationSec, 'timer');
+                this.updateHeaderTimers();
             },
 
             // --- LOGIC: MODAL & SAVE ---
@@ -1367,12 +1408,19 @@
                     this.els.modal.time.classList.remove('hidden');
                     this.els.modal.saveBtn.querySelector('span').innerText = 'SAVE & NEXT';
                     this.els.modal.modalPauseBtn.classList.remove('hidden');
+                    if (this.els.modal.liveContainer) {
+                        this.els.modal.liveContainer.classList.remove('hidden');
+                    }
                     this.updateModalPauseButton();
+                    this.updateHeaderTimers();
                 } else {
                     this.els.modal.durationGroup.classList.remove('hidden');
                     this.els.modal.time.classList.add('hidden');
                     this.els.modal.saveBtn.querySelector('span').innerText = 'ADD ELEMENT';
                     this.els.modal.modalPauseBtn.classList.add('hidden');
+                    if (this.els.modal.liveContainer) {
+                        this.els.modal.liveContainer.classList.add('hidden');
+                    }
                 }
 
                 // Render custom suggestions instead of datalist options
@@ -1384,6 +1432,12 @@
             },
 
             closeModal: function () {
+                if (this.state.modalMode === 'timer' && this.state.previousSplitStart !== null) {
+                    // Revert current split anchor to before the cancelled split
+                    this.state.currentSplitStart = this.state.previousSplitStart;
+                    this.state.previousSplitStart = null;
+                    this.updateHeaderTimers();
+                }
                 this.els.modal.overlay.classList.add('hidden');
                 this.els.modal.content.classList.remove('modal-enter-active');
                 setTimeout(() => {
@@ -1463,11 +1517,8 @@
                 }, 80);
 
                 if (this.state.modalMode === 'timer') {
-                    // If paused, use pauseStart as the anchor (timer's frozen time)
-                    // so resume compensation doesn't over-adjust the split timer
-                    this.state.currentSplitStart = this.state.isPaused
-                        ? this.state.pauseStart
-                        : Date.now();
+                    // Clear previousSplitStart now that split is committed
+                    this.state.previousSplitStart = null;
                 }
 
                 this.renderTable();
@@ -1629,6 +1680,7 @@
                 const elapsedMs = this.state.totalElapsedAtEnd || this.getElapsedMs();
                 this.state.startTime = now - elapsedMs;
                 this.state.currentSplitStart = now; // Fresh split timer
+                this.state.previousSplitStart = null;
                 this.state.isRunning = false;
                 this.state.isPaused = true;
                 this.state.pauseStart = now;
@@ -1666,6 +1718,7 @@
                 this.state.isPaused = false;
                 this.state.startTime = null;
                 this.state.currentSplitStart = null;
+                this.state.previousSplitStart = null;
                 this.state.pauseTime = 0;
                 this.state.pauseStart = null;
                 this.state.totalElapsedAtEnd = 0;
