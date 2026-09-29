@@ -1170,6 +1170,28 @@
 
             clearSession: function () {
                 localStorage.removeItem('kaizen_session');
+                localStorage.removeItem('kaizen_heartbeat');
+            },
+
+            // Tiny timer snapshot written every few seconds while the clock runs, so a closed tab
+            // loses at most a few seconds of clock (the full session is saved on real events).
+            saveHeartbeat: function () {
+                try {
+                    localStorage.setItem('kaizen_heartbeat', JSON.stringify({
+                        t: Date.now(),
+                        elapsed: this.getElapsedMs(),
+                        split: this.getSplitElapsedMs()
+                    }));
+                } catch (e) { /* storage unavailable: ignore */ }
+            },
+
+            loadHeartbeat: function () {
+                try {
+                    const raw = localStorage.getItem('kaizen_heartbeat');
+                    return raw ? JSON.parse(raw) : null;
+                } catch (e) {
+                    return null;
+                }
             },
 
             recoverSession: function () {
@@ -1187,8 +1209,15 @@
 
                 // Reconstruct timer anchors from saved elapsed offsets
                 const now = Date.now();
-                const elapsedMs = session.timer.elapsedSoFar || 0;
-                const splitMs = session.timer.splitElapsedSoFar || 0;
+                let elapsedMs = session.timer.elapsedSoFar || 0;
+                let splitMs = session.timer.splitElapsedSoFar || 0;
+
+                // A heartbeat newer than the last full save means the clock kept running after it
+                const beat = this.loadHeartbeat();
+                if (session.phase === 'capture' && beat && beat.t > (session.savedAt || 0)) {
+                    elapsedMs = beat.elapsed || elapsedMs;
+                    splitMs = beat.split || splitMs;
+                }
 
                 if (session.phase === 'capture') {
                     // Restore into paused state so user can manually resume
@@ -1799,12 +1828,23 @@
                 this.autoSave();
             },
 
+            // Redraws the header only when the displayed second changes (not every frame).
+            // A loop id stops any older loop if pause/resume happens within a frame.
             runTimerLoop: function () {
                 if (!this.state.isRunning) return;
 
-                this.updateHeaderTimers();
-
-                requestAnimationFrame(() => this.runTimerLoop());
+                const id = this._loopId = (this._loopId || 0) + 1;
+                let lastSec = null;
+                const tick = () => {
+                    if (!this.state.isRunning || this._loopId !== id) return;
+                    const sec = Math.floor(this.getElapsedMs() / 1000);
+                    if (sec !== lastSec) {
+                        lastSec = sec;
+                        this.updateHeaderTimers();
+                    }
+                    requestAnimationFrame(tick);
+                };
+                tick();
             },
 
             // --- LOGIC: SPLIT / CAPTURE ---
@@ -2473,6 +2513,12 @@
             });
             window.addEventListener('afterprint', () => { document.title = original; });
         })();
+
+        // Heartbeat while the clock runs; full save whenever the page is hidden or closed
+        setInterval(() => { if (app.state.isRunning) app.saveHeartbeat(); }, 5000);
+        const saveIfCapturing = () => { if (app.state.phase === 'capture') app.autoSave(); };
+        document.addEventListener('visibilitychange', () => { if (document.hidden) saveIfCapturing(); });
+        window.addEventListener('pagehide', saveIfCapturing);
 
         // Start App
         window.onload = () => app.init();
