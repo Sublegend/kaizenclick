@@ -57,36 +57,55 @@
         /* Drag-and-Drop Styles */
         .drag-handle {
             cursor: grab;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         .drag-handle:active {
             cursor: grabbing;
         }
 
-        /* The row being dragged (original element) */
-        .is-dragging {
-            opacity: 0;
-            pointer-events: none;
+        body.is-reordering {
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: grabbing;
         }
 
-        /* The clone/ghost element that follows the cursor */
+        /* The slot the row will drop into: content hidden, dashed highlight */
+        .is-dragging {
+            background: #eff6ff !important;
+            outline: 2px dashed #93c5fd;
+            outline-offset: -2px;
+        }
+
+        .is-dragging > td > * {
+            visibility: hidden;
+        }
+
+        .is-dragging > td {
+            color: transparent !important;
+        }
+
+        /* The lifted copy that follows the finger (a real table, so columns keep their widths) */
         .drag-clone {
             position: fixed;
             top: 0;
             left: 0;
             z-index: 100;
-            opacity: 0.9;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-            background-color: #e5e7eb;
-            transform-origin: 0 0;
-            pointer-events: none;
-            transition: transform 0s !important;
+            table-layout: fixed;
+            border-collapse: collapse;
+            background: #ffffff;
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28), 0 0 0 1px rgba(59, 130, 246, 0.35);
             border-radius: 0.5rem;
+            pointer-events: none;
+            transition: none !important;
+            will-change: transform;
         }
 
-        /* The target row where the clone is hovered */
-        .drag-target {
-            border-top: 3px solid #3b82f6;
+        .drag-clone td {
+            background: #ffffff !important;
         }
 
         /* Chip/Tag styles for default elements */
@@ -989,8 +1008,8 @@
                 startIndex: -1,
                 yOffset: 0,
                 xOffset: 0,
-                rowHeight: 0,
-                tableRect: null,
+                pointerY: 0,
+                raf: null,
                 body: null
             },
 
@@ -1963,100 +1982,131 @@
 
                 const tr = e.currentTarget;
                 const rect = tr.getBoundingClientRect();
+                const ds = this.dragState;
 
-                this.dragState.isDragging = true;
-                this.dragState.draggedRow = tr;
-                this.dragState.startIndex = index;
-                this.dragState.yOffset = coord.clientY - rect.top;
-                this.dragState.xOffset = coord.clientX - rect.left;
-                this.dragState.rowHeight = rect.height;
-                this.dragState.tableRect = this.els.table.getBoundingClientRect();
-                this.dragState.body = this.els.table;
+                ds.isDragging = true;
+                ds.draggedRow = tr;
+                ds.startIndex = index;
+                ds.yOffset = coord.clientY - rect.top;
+                ds.xOffset = coord.clientX - rect.left;
+                ds.pointerY = coord.clientY;
+                ds.body = this.els.table;
 
-                const clone = tr.cloneNode(true);
-                clone.classList.add('drag-clone');
-                clone.style.width = rect.width + 'px';
+                // Ghost = a one-row table with each cell pinned to its real width
+                const ghost = document.createElement('table');
+                ghost.className = 'study-table drag-clone';
+                ghost.style.width = rect.width + 'px';
+                const gbody = document.createElement('tbody');
+                const rowCopy = tr.cloneNode(true);
+                rowCopy.classList.remove('is-dragging');
+                rowCopy.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+                Array.from(rowCopy.children).forEach((cell, i) => {
+                    cell.style.width = tr.children[i].getBoundingClientRect().width + 'px';
+                });
+                gbody.appendChild(rowCopy);
+                ghost.appendChild(gbody);
 
-                const startY = coord.clientY - this.dragState.yOffset;
-                const startX = coord.clientX - this.dragState.xOffset;
-                clone.style.transform = `translate(${startX}px, ${startY}px)`;
-
-                document.body.appendChild(clone);
-                this.dragState.cloneRow = clone;
+                ghost.style.transform = `translate(${coord.clientX - ds.xOffset}px, ${rect.top}px) scale(1.02)`;
+                document.body.appendChild(ghost);
+                ds.cloneRow = ghost;
 
                 tr.classList.add('is-dragging');
+                document.body.classList.add('is-reordering');
+                if (navigator.vibrate) navigator.vibrate(12);
 
                 document.addEventListener('mousemove', this.handleDragMove);
                 document.addEventListener('mouseup', this.handleDragEnd);
                 document.addEventListener('touchmove', this.handleDragMove, { passive: false });
                 document.addEventListener('touchend', this.handleDragEnd);
                 document.addEventListener('touchcancel', this.handleDragEnd);
+
+                ds.raf = requestAnimationFrame(() => app.dragAutoScroll());
+            },
+
+            // Move the dragged row to wherever the pointer is, comparing against live row midpoints
+            // (rows can have different heights: bars, notes, wrapped names).
+            updateDragTarget: function () {
+                const ds = this.dragState;
+                if (!ds.isDragging) return;
+
+                let ref = null;
+                for (const r of ds.body.children) {
+                    if (r === ds.draggedRow) continue;
+                    const b = r.getBoundingClientRect();
+                    if (ds.pointerY < b.top + b.height / 2) { ref = r; break; }
+                }
+                if (ds.draggedRow.nextElementSibling !== ref) {
+                    ds.body.insertBefore(ds.draggedRow, ref);
+                    if (navigator.vibrate) navigator.vibrate(6);
+                }
+
+                const newVisualIndex = Array.from(ds.body.children).indexOf(ds.draggedRow);
+                const positionSpan = ds.cloneRow.querySelector('.drag-handle .font-bold');
+                if (positionSpan) positionSpan.textContent = newVisualIndex + 1;
+            },
+
+            // Scroll the sheet while the pointer is held near the top or bottom edge
+            dragAutoScroll: function () {
+                const ds = this.dragState;
+                if (!ds.isDragging) return;
+
+                const main = this.els.mainContent;
+                const mainRect = main.getBoundingClientRect();
+                const bar = !this.els.bars.capture.classList.contains('hidden') ? this.els.bars.capture : this.els.bars.review;
+                const topEdge = mainRect.top + 70;
+                const bottomEdge = Math.min(mainRect.bottom, bar.getBoundingClientRect().top) - 70;
+
+                let speed = 0;
+                if (ds.pointerY < topEdge) speed = -Math.min(18, Math.ceil((topEdge - ds.pointerY) / 5));
+                else if (ds.pointerY > bottomEdge) speed = Math.min(18, Math.ceil((ds.pointerY - bottomEdge) / 5));
+
+                if (speed !== 0) {
+                    main.scrollTop += speed;
+                    this.updateDragTarget();
+                }
+                ds.raf = requestAnimationFrame(() => app.dragAutoScroll());
             },
 
             handleDragMove: function (e) {
-                if (!app.dragState.isDragging) return;
+                const ds = app.dragState;
+                if (!ds.isDragging) return;
                 e.preventDefault();
 
                 const coord = app.getCoords(e);
-                const currentY = coord.clientY;
-                const currentX = coord.clientX;
-                const clone = app.dragState.cloneRow;
-
-                const newY = currentY - app.dragState.yOffset;
-                const newX = currentX - app.dragState.xOffset;
-
-                clone.style.transform = `translate(${newX}px, ${newY}px)`;
-
-                const targetCenterY = currentY - app.dragState.tableRect.top;
-                const maxIndex = app.state.observations.length - 1;
-
-                const newIndexRaw = Math.floor(targetCenterY / app.dragState.rowHeight);
-                const targetIndex = Math.min(Math.max(0, newIndexRaw), maxIndex);
-
-                const currentIndex = Array.from(app.dragState.body.children).indexOf(app.dragState.draggedRow);
-
-                if (targetIndex !== currentIndex) {
-                    const rowElements = Array.from(app.dragState.body.children);
-
-                    if (targetIndex > currentIndex) {
-                        app.dragState.body.insertBefore(app.dragState.draggedRow, rowElements[targetIndex].nextSibling);
-                    } else {
-                        app.dragState.body.insertBefore(app.dragState.draggedRow, rowElements[targetIndex]);
-                    }
-                }
-
-                const newVisualIndex = Array.from(app.dragState.body.children).indexOf(app.dragState.draggedRow);
-                const positionSpan = clone.querySelector('.drag-handle .font-bold');
-                if (positionSpan) {
-                    positionSpan.textContent = newVisualIndex + 1;
-                }
+                ds.pointerY = coord.clientY;
+                ds.cloneRow.style.transform =
+                    `translate(${coord.clientX - ds.xOffset}px, ${coord.clientY - ds.yOffset}px) scale(1.02)`;
+                app.updateDragTarget();
             },
 
             handleDragEnd: function () {
-                if (!app.dragState.isDragging) return;
+                const ds = app.dragState;
+                if (!ds.isDragging) return;
 
+                cancelAnimationFrame(ds.raf);
                 document.removeEventListener('mousemove', app.handleDragMove);
                 document.removeEventListener('mouseup', app.handleDragEnd);
                 document.removeEventListener('touchmove', app.handleDragMove);
                 document.removeEventListener('touchend', app.handleDragEnd);
                 document.removeEventListener('touchcancel', app.handleDragEnd);
 
-                const finalIndex = Array.from(app.dragState.body.children).indexOf(app.dragState.draggedRow);
+                const finalIndex = Array.from(ds.body.children).indexOf(ds.draggedRow);
 
-                app.dragState.cloneRow.remove();
-                app.dragState.draggedRow.classList.remove('is-dragging');
+                ds.cloneRow.remove();
+                ds.draggedRow.classList.remove('is-dragging');
+                document.body.classList.remove('is-reordering');
 
-                if (app.dragState.startIndex !== finalIndex) {
-                    const element = app.state.observations.splice(app.dragState.startIndex, 1)[0];
+                if (ds.startIndex !== finalIndex) {
+                    const element = app.state.observations.splice(ds.startIndex, 1)[0];
                     app.state.observations.splice(finalIndex, 0, element);
                 }
                 app.renderTable();
                 app.autoSave();
 
-                app.dragState.isDragging = false;
-                app.dragState.draggedRow = null;
-                app.dragState.cloneRow = null;
-                app.dragState.xOffset = 0;
+                ds.isDragging = false;
+                ds.draggedRow = null;
+                ds.cloneRow = null;
+                ds.xOffset = 0;
             },
 
             // --- LOGIC: END CAPTURE / REVIEW / LIFECYCLE ---
