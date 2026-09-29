@@ -149,7 +149,7 @@
         }
 
         .study-table col.col-num {
-            width: 36px;
+            width: 50px;
         }
 
         .study-table col.col-desc {
@@ -170,7 +170,7 @@
 
         @media (min-width: 640px) {
             .study-table col.col-num {
-                width: 50px;
+                width: 58px;
             }
             .study-table col.col-time {
                 width: 110px;
@@ -212,6 +212,11 @@
                 padding: 8px 10px;
                 font-size: 0.875rem;
             }
+        }
+
+        .study-table tbody td:first-child {
+            padding-left: 6px;
+            padding-right: 4px;
         }
 
         .study-table tbody tr:nth-child(even) {
@@ -2216,8 +2221,8 @@
 
                     tr.innerHTML = `
                         <td class="text-slate-400 font-mono select-none drag-handle" title="Drag to reorder">
-                            <div class="flex items-center gap-1.5">
-                                <i class="fa-solid fa-bars text-gray-400 text-sm no-print"></i>
+                            <div class="flex items-center gap-1">
+                                <i class="fa-solid fa-bars text-gray-400 text-xs sm:text-sm no-print"></i>
                                 <span class="font-bold text-gray-700 text-sm">${index + 1}</span>
                             </div>
                         </td>
