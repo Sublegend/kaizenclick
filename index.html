@@ -240,23 +240,54 @@
             }
         }
 
-        /* Editable sheet metadata */
+        /* Sheet header: operation title + spec-strip of detail cells */
+        .meta-label {
+            font-size: 0.625rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #94a3b8;
+            line-height: 1.2;
+        }
+
+        .meta-val {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1e293b;
+            min-height: 1.5em;
+            line-height: 1.5;
+        }
+
+        @media (min-width: 640px) {
+            .meta-val {
+                font-size: 1.05rem;
+            }
+        }
+
+        input.meta-val {
+            display: block;
+            height: 1.5em;
+            padding: 0;
+            border: 0;
+            font-family: inherit;
+        }
+
+        /* Edit affordance only appears when a value is tapped */
         .meta-edit {
-            display: inline-block;
-            min-width: 3rem;
-            border-bottom: 1px dashed #9ca3af;
             outline: none;
-            border-radius: 2px;
+            border-radius: 4px;
+            transition: background 0.15s;
         }
 
         .meta-edit:focus {
             background: #fefce8;
-            border-bottom-color: #eab308;
+            box-shadow: 0 0 0 2px #fde68a;
         }
 
         .meta-edit:empty::before {
             content: attr(data-placeholder);
             color: #cbd5e1;
+            font-weight: 400;
         }
 
         @media print {
@@ -457,9 +488,8 @@
                 padding: 16px !important;
             }
 
-            #review-header-meta h2 {
-                font-size: 1.1rem !important;
-                margin-bottom: 8px !important;
+            #meta-op {
+                font-size: 1.25rem !important;
             }
         }
     </style>
@@ -618,35 +648,45 @@
 
                 <!-- Print Header / Metadata -->
                 <div id="review-header-meta" class="p-3 sm:p-5 border-b border-gray-200">
-                    <h2
-                        class="text-base sm:text-xl font-extrabold text-slate-800 mb-2 sm:mb-3 uppercase tracking-wide print:text-lg print:mb-2">
-                        Time Study</h2>
-                    <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-xs sm:text-sm print:text-xs">
-                        <p class="font-semibold col-span-2">Operation: <span id="meta-op" class="meta-edit font-normal"
-                                contenteditable="true" data-placeholder="tap to add"
-                                onblur="app.updateMeta('operation', this)"
-                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
-                        <p class="font-semibold">Date: <input type="date" id="meta-date" class="meta-edit font-normal bg-transparent"
-                                onchange="app.updateMeta('date', this)"></p>
-                        <p class="font-semibold">Operator: <span id="meta-operator" class="meta-edit font-normal"
-                                contenteditable="true" data-placeholder="tap to add"
+                    <div class="meta-label !text-slate-400 mb-0.5">Time Study</div>
+                    <div id="meta-op" class="meta-edit text-xl sm:text-3xl font-extrabold text-slate-800 leading-tight break-words print:text-xl"
+                        contenteditable="true" data-placeholder="Operation"
+                        onblur="app.updateMeta('operation', this)"
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></div>
+
+                    <div class="mt-3 sm:mt-4 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+                        <div>
+                            <div class="meta-label">Operator</div>
+                            <div class="meta-val"><span id="meta-operator" class="meta-edit inline-block min-w-[2rem]" contenteditable="true" data-placeholder="&mdash;"
                                 onblur="app.updateMeta('operatorName', this)"
-                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
-                        <p class="font-semibold">Analyst: <span id="meta-analyst" class="meta-edit font-normal"
-                                contenteditable="true" data-placeholder="tap to add"
-                                onblur="app.updateMeta('documentedBy', this)"
-                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
-                        <p class="font-semibold">Department: <span id="meta-dept" class="meta-edit font-normal"
-                                contenteditable="true" data-placeholder="tap to add"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></div>
+                        </div>
+                        <div>
+                            <div class="meta-label">Department</div>
+                            <div class="meta-val"><span id="meta-dept" class="meta-edit inline-block min-w-[2rem]" contenteditable="true" data-placeholder="&mdash;"
                                 onblur="app.updateMeta('department', this)"
-                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></p>
-                        <p id="meta-takt-row" class="font-semibold">TAKT Time: <span id="meta-takt" class="meta-edit font-normal"
-                                contenteditable="true" inputmode="decimal" data-placeholder="tap to add"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></div>
+                        </div>
+                        <div>
+                            <div class="meta-label">Analyst</div>
+                            <div class="meta-val"><span id="meta-analyst" class="meta-edit inline-block min-w-[2rem]" contenteditable="true" data-placeholder="&mdash;"
+                                onblur="app.updateMeta('documentedBy', this)"
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span></div>
+                        </div>
+                        <div>
+                            <div class="meta-label">Date</div>
+                            <input type="date" id="meta-date" class="meta-edit meta-val bg-transparent p-0"
+                                onchange="app.updateMeta('date', this)">
+                        </div>
+                        <div id="meta-takt-row">
+                            <div class="meta-label">Takt</div>
+                            <div class="meta-val"><span id="meta-takt" class="meta-edit inline-block min-w-[2rem]" contenteditable="true" inputmode="decimal" data-placeholder="&mdash;"
                                 onblur="app.updateMeta('taktTime', this)"
-                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span> min</p>
+                                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"></span> <span class="text-slate-400 font-normal text-sm">min</span></div>
+                        </div>
                         <div id="meta-custom" class="contents"></div>
                     </div>
-                    <button onclick="app.addCustomField()" class="no-print mt-2 text-[11px] font-bold text-blue-600 btn-touch">
+                    <button onclick="app.addCustomField()" class="no-print mt-3 text-[11px] font-bold text-blue-600 btn-touch">
                         <i class="fa-solid fa-plus mr-1"></i>Field</button>
                 </div>
 
@@ -686,7 +726,7 @@
                 </div>
 
                 <div class="no-print px-3 py-1.5 text-[11px] text-slate-400 bg-white border-b border-gray-100">
-                    <i class="fa-solid fa-hand-pointer mr-1"></i>Tap a name or time to edit &middot; drag <i class="fa-solid fa-bars mx-0.5"></i> to reorder
+                    <i class="fa-solid fa-hand-pointer mr-1"></i>Tap to edit &middot; drag <i class="fa-solid fa-bars mx-0.5"></i> to reorder
                 </div>
 
                 <!-- Data Table -->
@@ -1501,11 +1541,14 @@
             renderCustomMeta: function () {
                 const keys = "if(event.key==='Enter'){event.preventDefault();this.blur()}";
                 document.getElementById('meta-custom').innerHTML = (this.state.meta.custom || []).map((f, i) => `
-                    <p class="font-semibold"><span class="meta-edit !min-w-0 font-semibold" contenteditable="true" data-placeholder="label"
-                        onblur="app.updateCustom(${i}, 'label', this)" onkeydown="${keys}">${this.escapeHtml(f.label)}</span>: <span class="meta-edit font-normal" contenteditable="true" data-placeholder="value"
-                        onblur="app.updateCustom(${i}, 'value', this)" onkeydown="${keys}">${this.escapeHtml(f.value)}</span><button
-                        class="no-print ml-1 text-slate-300 hover:text-red-500 btn-touch" title="Remove field"
-                        onclick="app.removeCustomField(${i})"><i class="fa-solid fa-xmark text-[10px]"></i></button></p>`).join('');
+                    <div class="relative">
+                        <div class="meta-label meta-edit block w-fit min-w-[2rem]" contenteditable="true" data-placeholder="label"
+                            onblur="app.updateCustom(${i}, 'label', this)" onkeydown="${keys}">${this.escapeHtml(f.label)}</div>
+                        <button class="no-print absolute top-0 right-0 text-slate-300 hover:text-red-500 btn-touch" title="Remove field"
+                            onclick="app.removeCustomField(${i})"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+                        <div class="meta-val meta-edit" contenteditable="true" data-placeholder="&mdash;"
+                            onblur="app.updateCustom(${i}, 'value', this)" onkeydown="${keys}">${this.escapeHtml(f.value)}</div>
+                    </div>`).join('');
             },
 
             addCustomField: function () {
@@ -1520,13 +1563,13 @@
             updateCustom: function (i, part, el) {
                 const f = (this.state.meta.custom || [])[i];
                 if (!f) return;
-                f[part] = el.innerText.trim();
+                f[part] = el.textContent.trim();
                 if (!f.label && !f.value) {
                     this.state.meta.custom.splice(i, 1); // both empty: drop the field
                     this.renderCustomMeta();
                 } else if (!f.label) {
                     f.label = 'Field';
-                    el.innerText = f.label;
+                    el.textContent = f.label;
                 }
                 this.autoSave();
             },
