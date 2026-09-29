@@ -11,7 +11,7 @@ No install, no account. Your data stays on your device.
 1. **Set up.** Enter the operation and operator, then tap **START STUDY**. Add TAKT time if you want manpower calculated.
 2. **Capture.** Tap **SPLIT** at the end of each element, name it (tap a suggestion or type), and save. Use **PAUSE** for interruptions and **+ADD** to enter a missed element by hand. Tap **END** when finished.
 3. **Review.** Tap any name, time or detail to edit it. Drag the ≡ grip to reorder. Tap the bin to delete a row.
-4. **Share.** **Share** sends the sheet as a **PDF** or **Excel** file (email, Messages, Drive, etc.). The PDF fits one page when it can and otherwise paginates. **Print** opens the same PDF in a new tab, where you print it (or save it) with the viewer's own buttons. **Resume** goes back to capturing; **New** starts over.
+4. **Share.** **Share** sends the sheet as a **PDF** or **Excel** file (email, Messages, Drive, etc.). The PDF fits one page when it can and otherwise paginates. To print, share the PDF and choose **Print** from the share sheet (or open the downloaded PDF on a desktop). **Resume** goes back to capturing; **New** starts over.
 
 ## Options
 
