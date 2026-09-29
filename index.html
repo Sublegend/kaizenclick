@@ -300,6 +300,39 @@
             }
         }
 
+        /* Duration bar under each element name, scaled to the longest element */
+        .dur-track {
+            height: 5px;
+            margin-top: 4px;
+            background: #eef2f7;
+            border-radius: 9999px;
+        }
+
+        .dur-fill {
+            height: 100%;
+            min-width: 3px;
+            background: #94a3b8;
+            border-radius: 9999px;
+        }
+
+        .dur-fill.longest {
+            background: #3b82f6;
+        }
+
+        @media print {
+            .dur-track {
+                background: #f1f5f9;
+            }
+
+            .dur-fill {
+                background: #94a3b8;
+            }
+
+            .dur-fill.longest {
+                background: #334155;
+            }
+        }
+
         /* Per-element notes (second line under the element name) */
         .note-edit {
             font-size: 0.6875rem;
@@ -2176,7 +2209,6 @@
                     totalElementTime += obs.duration;
                     const pct = opts.cumulative && maxDuration > 0 ? Math.round((obs.duration / maxDuration) * 100) : 0;
                     const isLongest = obs.duration === maxDuration && this.state.observations.length > 1;
-                    const barColor = isLongest ? '#bfdbfe' : '#e2e8f0';
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-index', index);
 
@@ -2187,12 +2219,13 @@
                                 <span class="font-bold text-gray-700 text-sm">${index + 1}</span>
                             </div>
                         </td>
-                        <td style="background: linear-gradient(to right, ${barColor} ${pct}%, transparent ${pct}%)">
+                        <td>
                             <div class="font-medium outline-none focus:!bg-yellow-50 focus:ring-2 focus:ring-yellow-200 rounded cursor-text break-words whitespace-normal"
                                 contenteditable="true"
                                 onblur="app.updateDesc(${index}, this)"
                                 onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
                                 title="Click to edit description">${this.escapeHtml(obs.description)}</div>
+                            ${opts.cumulative ? `<div class="dur-track"><div class="dur-fill${isLongest ? ' longest' : ''}" style="width:${pct}%"></div></div>` : ''}
                             ${opts.notes ? `<div class="note-edit break-words whitespace-normal" contenteditable="true"
                                 data-placeholder="+ note"
                                 onblur="app.updateNote(${index}, this)"
