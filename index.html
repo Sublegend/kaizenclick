@@ -315,10 +315,6 @@
             border-radius: 9999px;
         }
 
-        .dur-fill.longest {
-            background: #3b82f6;
-        }
-
         @media print {
             .dur-track {
                 background: #f1f5f9;
@@ -328,9 +324,6 @@
                 background: #94a3b8;
             }
 
-            .dur-fill.longest {
-                background: #334155;
-            }
         }
 
         /* Per-element notes (second line under the element name) */
@@ -514,6 +507,16 @@
 
             .study-table col.col-act {
                 width: 0 !important;
+            }
+
+            /* Never split a row across pages; show TOTAL once at the very end (not repeated per page) */
+            .study-table tbody tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .study-table tfoot {
+                display: table-row-group;
             }
 
             .sum-track {
@@ -758,14 +761,14 @@
                     </div>
                 </div>
 
-                <div class="no-print flex flex-wrap items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Show</span>
+                <div class="no-print flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
+                    <span class="hidden sm:inline text-[10px] font-bold text-slate-400 uppercase tracking-wide">Show</span>
                     <button id="tog-showManpower" onclick="app.toggleOpt('showManpower')"
-                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-users mr-1"></i>Manpower</button>
+                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-users mr-1 hidden sm:inline"></i>Manpower</button>
                     <button id="tog-showCumulative" onclick="app.toggleOpt('showCumulative')"
-                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-chart-simple mr-1"></i>Cumulative</button>
+                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-chart-simple mr-1 hidden sm:inline"></i>Cumulative</button>
                     <button id="tog-showNotes" onclick="app.toggleOpt('showNotes')"
-                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-note-sticky mr-1"></i>Notes</button>
+                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-note-sticky mr-1 hidden sm:inline"></i>Notes</button>
                 </div>
 
                 <div class="no-print px-3 py-1.5 text-[11px] text-slate-400 bg-white border-b border-gray-100">
@@ -1551,7 +1554,7 @@
                 const opts = this.getOpts();
                 const set = (id, on) => {
                     const btn = document.getElementById(id);
-                    btn.className = 'opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch ' +
+                    btn.className = 'opt-chip flex-1 sm:flex-none text-center whitespace-nowrap text-xs font-bold px-2.5 py-1.5 rounded-full btn-touch ' +
                         (on ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-400');
                     btn.setAttribute('aria-pressed', on);
                 };
@@ -2208,7 +2211,6 @@
                 this.state.observations.forEach((obs, index) => {
                     totalElementTime += obs.duration;
                     const pct = opts.cumulative && maxDuration > 0 ? Math.round((obs.duration / maxDuration) * 100) : 0;
-                    const isLongest = obs.duration === maxDuration && this.state.observations.length > 1;
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-index', index);
 
@@ -2225,7 +2227,7 @@
                                 onblur="app.updateDesc(${index}, this)"
                                 onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}"
                                 title="Click to edit description">${this.escapeHtml(obs.description)}</div>
-                            ${opts.cumulative ? `<div class="dur-track"><div class="dur-fill${isLongest ? ' longest' : ''}" style="width:${pct}%"></div></div>` : ''}
+                            ${opts.cumulative ? `<div class="dur-track"><div class="dur-fill" style="width:${pct}%"></div></div>` : ''}
                             ${opts.notes ? `<div class="note-edit break-words whitespace-normal" contenteditable="true"
                                 data-placeholder="+ note"
                                 onblur="app.updateNote(${index}, this)"
