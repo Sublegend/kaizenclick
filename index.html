@@ -1393,8 +1393,10 @@
                 this.els.header.elapsed.innerText =
                     `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-                const splitMs = this.getSplitElapsedMs();
-                const splitTotalSecs = Math.floor(splitMs / 1000);
+                // Split display ticks in step with the elapsed clock: whole seconds elapsed now minus
+                // whole seconds elapsed when this split began. Display only; recorded times stay exact.
+                const splitStartElapsedMs = this.state.currentSplitStart ? this.state.currentSplitStart - this.state.startTime : 0;
+                const splitTotalSecs = Math.max(0, totalSecs - Math.floor(splitStartElapsedMs / 1000));
                 const splitMins = Math.floor(splitTotalSecs / 60);
                 const splitSecs = splitTotalSecs % 60;
                 const formattedSplit = `${splitMins}:${splitSecs.toString().padStart(2, '0')}`;
@@ -1817,9 +1819,9 @@
 
                 // Save previous split start in case modal is cancelled
                 this.state.previousSplitStart = this.state.currentSplitStart;
-                // Next split starts immediately, phase-locked to elapsed timer tick
-                const elapsedSec = Math.floor(this.getElapsedMs() / 1000);
-                this.state.currentSplitStart = this.state.startTime + (elapsedSec * 1000);
+                // Next split starts at the exact moment of this tap, so consecutive splits never overlap
+                // or leave gaps (the on-screen split clock is kept in step with the elapsed clock at display time)
+                this.state.currentSplitStart = now;
 
                 this.openModal(roundedDurationSec, 'timer');
                 this.updateHeaderTimers();
@@ -2141,9 +2143,8 @@
 
                 // Reconstruct timer from stored elapsed
                 const elapsedMs = this.state.totalElapsedAtEnd || this.getElapsedMs();
-                const elapsedSec = Math.floor(elapsedMs / 1000);
                 this.state.startTime = now - elapsedMs;
-                this.state.currentSplitStart = this.state.startTime + (elapsedSec * 1000);
+                this.state.currentSplitStart = now;
                 this.state.previousSplitStart = null;
                 this.state.isRunning = false;
                 this.state.isPaused = true;
