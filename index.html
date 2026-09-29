@@ -399,6 +399,13 @@
         }
 
         /* Print Styling */
+        /* Zero page margin stops the browser adding its own date/title/URL header and footer;
+           the sheet supplies its own margins instead. */
+        @page {
+            size: auto;
+            margin: 0;
+        }
+
         @media print {
 
             body {
@@ -437,6 +444,9 @@
             }
 
             #printable-area {
+                padding: 12mm !important;
+                box-decoration-break: clone;
+                -webkit-box-decoration-break: clone;
                 width: 100%;
                 box-shadow: none !important;
                 border: none !important;
@@ -2362,6 +2372,16 @@
         // Bind global handlers to the app object for use with addEventListener
         app.handleDragMove = app.handleDragMove.bind(app);
         app.handleDragEnd = app.handleDragEnd.bind(app);
+
+        // Name the printed/PDF file "Operation | Time Study" instead of the page title
+        (function () {
+            const original = document.title;
+            window.addEventListener('beforeprint', () => {
+                const op = app.state.meta && app.state.meta.operation;
+                if (op) document.title = `${op} | Time Study`;
+            });
+            window.addEventListener('afterprint', () => { document.title = original; });
+        })();
 
         // Start App
         window.onload = () => app.init();
