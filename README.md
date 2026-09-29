@@ -11,7 +11,7 @@ No install, no account. Your data stays on your device.
 1. **Set up.** Enter the operation and operator, then tap **START STUDY**. Add TAKT time if you want manpower calculated.
 2. **Capture.** Tap **SPLIT** at the end of each element, name it (tap a suggestion or type), and save. Use **PAUSE** for interruptions and **+ADD** to enter a missed element by hand. Tap **END** when finished.
 3. **Review.** Tap any name, time or detail to edit it. Drag the ≡ grip to reorder. Tap the bin to delete a row.
-4. **Share.** **Share** sends the sheet as an Excel file (email, Messages, Drive, etc.). **Print** prints it or saves a PDF. **Resume** goes back to capturing; **New** starts over.
+4. **Share.** **Share** sends the sheet as a **PDF** or **Excel** file (email, Messages, Drive, etc.). The PDF fits one page when it can and otherwise paginates. **Print** uses your browser's print dialog. **Resume** goes back to capturing; **New** starts over.
 
 ## Options
 
@@ -30,7 +30,7 @@ Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Cumul
 - **Auto-recovery.** If the tab closes mid-study, reopening offers to resume. The clock comes back paused.
 - **Pausing** stops the whole study clock, not just the current split.
 - **Internet needed to load.** The page pulls its styling, icons and Excel library from CDNs. Data is never sent anywhere.
-- **Share** needs the page served over HTTPS (for example GitHub Pages). Where sharing isn't available, it downloads the Excel file instead.
+- **Share** needs the page served over HTTPS (for example GitHub Pages). Where sharing isn't available, it downloads the file instead. The PDF library loads the first time you open the review screen, so that needs a connection.
 
 ## Run it
 
