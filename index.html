@@ -1252,7 +1252,9 @@
             // --- INITIALIZATION ---
             init: function () {
                 // Set default date
-                this.els.inputs.date.valueAsDate = new Date();
+                // Local calendar date (valueAsDate would use UTC, which is tomorrow's date in the evening in the Americas)
+                const today = new Date();
+                this.els.inputs.date.value = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
                 // Load saved default elements
                 const savedDefaults = localStorage.getItem('kaizen_defaults');
