@@ -1088,6 +1088,7 @@
                     this.state.isPaused = true;
                     this.state.pauseStart = now;
 
+                    this.syncCaptureControls();
                     // Set up the header
                     this.setupHeaderForCapture();
                     this.updateHeaderTimers();
@@ -1577,9 +1578,12 @@
                 this.state.startTime = Date.now();
                 this.state.currentSplitStart = Date.now();
                 this.state.previousSplitStart = null;
+                this.state.pauseTime = 0;
+                this.state.pauseStart = null;
                 this.state.observations = [];
                 this.state.totalElapsedAtEnd = 0;
 
+                this.syncCaptureControls();
                 this.setupHeaderForCapture();
                 this.switchToPhase('capture');
                 this.runTimerLoop();
@@ -1625,6 +1629,19 @@
                     btn.title = 'Resume';
                     if (label) label.textContent = 'RESUME';
                 }
+            },
+
+            // Draw the capture bar from the real timer state (split button + pause button)
+            syncCaptureControls: function () {
+                const splitBtn = this.els.timer.splitBtn;
+                const running = this.state.isRunning;
+                splitBtn.disabled = !running;
+                splitBtn.classList.toggle('bg-emerald-500', running);
+                splitBtn.classList.toggle('border-emerald-700', running);
+                splitBtn.classList.toggle('bg-gray-500', !running);
+                splitBtn.classList.toggle('border-gray-700', !running);
+                this.updatePauseButton();
+                this.updateModalPauseButton();
             },
 
             togglePause: function () {
