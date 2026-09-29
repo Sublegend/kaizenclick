@@ -620,7 +620,7 @@
                 <div id="review-header-meta" class="p-3 sm:p-5 border-b border-gray-200">
                     <h2
                         class="text-base sm:text-xl font-extrabold text-slate-800 mb-2 sm:mb-3 uppercase tracking-wide print:text-lg print:mb-2">
-                        Time Study Sheet</h2>
+                        Time Study</h2>
                     <div class="grid grid-cols-2 gap-y-1 gap-x-4 text-xs sm:text-sm print:text-xs">
                         <p class="font-semibold col-span-2">Operation: <span id="meta-op" class="meta-edit font-normal"
                                 contenteditable="true" data-placeholder="tap to add"
@@ -2252,7 +2252,7 @@
                 const showNotes = this.getOpts().notes;
                 const customRows = (this.state.meta.custom || []).map(f => [f.label + ":", f.value]);
                 const meta = [
-                    ["Time Study Sheet"], [""],
+                    ["Time Study"], [""],
                     ["Operator:", this.state.meta.operatorName, "", "Date:", this.state.meta.date],
                     ["Operation:", this.state.meta.operation],
                     showMp ? ["Dept:", this.state.meta.department, "", "TAKT Time (min):", this.state.meta.taktTime]
@@ -2285,7 +2285,7 @@
             shareStudy: async function () {
                 const meta = this.state.meta;
                 const { wb, filename } = this.buildWorkbook();
-                const subject = `${meta.operation} | Time Study Sheet`;
+                const subject = `${meta.operation} | Time Study`;
 
                 const total = this.state.observations.reduce((acc, o) => acc + o.duration, 0);
                 const lines = [
