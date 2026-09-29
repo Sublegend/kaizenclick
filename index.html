@@ -1431,7 +1431,7 @@
                 const formattedSplit = `${splitMins}:${splitSecs.toString().padStart(2, '0')}`;
                 this.els.header.split.innerText = formattedSplit;
 
-                if (this.els.modal.liveSplit && this.state.modalMode === 'timer' && !this.els.modal.overlay.classList.contains('hidden')) {
+                if (this.els.modal.liveSplit && (this.state.modalMode === 'timer' || this.state.phase === 'capture') && !this.els.modal.overlay.classList.contains('hidden')) {
                     this.els.modal.liveSplit.innerText = formattedSplit;
                 }
             },
@@ -1891,9 +1891,16 @@
                     this.els.modal.durationGroup.classList.remove('hidden');
                     this.els.modal.time.classList.add('hidden');
                     this.els.modal.saveBtn.querySelector('span').innerText = 'ADD ELEMENT';
-                    this.els.modal.modalPauseBtn.classList.add('hidden');
+                    // While the clock is live (capture phase), +ADD gets the same pause control and
+                    // clock status as a split; in review there is no clock, so both stay hidden.
+                    const clockLive = this.state.phase === 'capture';
+                    this.els.modal.modalPauseBtn.classList.toggle('hidden', !clockLive);
                     if (this.els.modal.liveContainer) {
-                        this.els.modal.liveContainer.classList.add('hidden');
+                        this.els.modal.liveContainer.classList.toggle('hidden', !clockLive);
+                    }
+                    if (clockLive) {
+                        this.updateModalPauseButton();
+                        this.updateHeaderTimers();
                     }
                 }
 
