@@ -11,7 +11,16 @@ No install, no account. Your data stays on your device.
 1. **Set up.** Enter the operation and operator, then tap **START STUDY**. Add TAKT time if you want manpower calculated.
 2. **Capture.** Tap **SPLIT** at the end of each element, name it (tap a suggestion or type), and save. Use **PAUSE** for interruptions and **+ADD** to enter a missed element by hand. Tap **END** when finished.
 3. **Review.** Tap any name, time or detail to edit it. Drag the ≡ grip to reorder. Tap the bin to delete a row.
-4. **Share.** **Share** sends the sheet as a **PDF** or **Excel** file (email, Messages, Drive, etc.). The PDF fits one page when it can and otherwise paginates. To print, share the PDF and choose **Print** from the share sheet (or open the downloaded PDF on a desktop). **Resume** goes back to capturing; **New** starts over.
+4. **Share.** **Share** sends the sheet as a **PDF** or **Excel** file (email, Messages, Drive, etc.). The PDF fits one page when it can and otherwise paginates. To print, share the PDF and choose **Print** from the share sheet (or open the downloaded PDF on a desktop). **Resume** goes back to capturing; **New** starts another study.
+
+## Studies
+
+You can keep several studies on the device and switch between them. Tap the study name in the top-right corner to open the list.
+
+- **Switch** by tapping a study. A study whose clock is running keeps running in the background (a green dot on the header button shows this).
+- **New study** opens setup without touching the others.
+- **Delete** a study with its bin icon, or clear out all finished ones with **Delete finished**.
+- **Search** appears once you have more than five studies.
 
 ## Options
 
@@ -27,7 +36,8 @@ Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Cumul
 
 ## Good to know
 
-- **Auto-recovery.** If the tab closes mid-study, reopening offers to resume. The clock comes back paused.
+- **Auto-recovery.** If the tab closes mid-study, reopening brings back every study and the one you had open. Clocks come back paused.
+- **Studies live in this browser only.** Clearing browsing data (or a work device's cleanup policy) deletes them. Share any study you need to keep. On iPad, add the app to the Home Screen so Safari doesn't clear it after a week without use.
 - **Pausing** stops the whole study clock, not just the current split.
 - **Internet needed to load.** The page pulls its styling, icons and Excel library from CDNs. Data is never sent anywhere.
 - **Share** needs the page served over HTTPS (for example GitHub Pages). Where sharing isn't available, it downloads the file instead. The PDF library loads the first time you open the review screen, so that needs a connection.

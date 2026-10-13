@@ -586,10 +586,18 @@
             </div>
         </div>
 
-        <div id="header-op-name" class="col-start-3 min-w-0 text-[10px] sm:text-xs text-right hidden">
-            <span id="header-op" class="block font-bold text-slate-200 truncate"></span>
-        </div>
+        <!-- Study switcher: current study name, number of studies, dot when another study's clock is running -->
+        <button id="header-op-name" onclick="app.openStudies()" title="Switch study"
+            class="col-start-3 min-w-0 max-w-full justify-self-end hidden items-center gap-1.5 bg-slate-700/60 hover:bg-slate-700 rounded-lg pl-2 sm:pl-2.5 pr-2 py-1.5 text-[10px] sm:text-xs btn-touch">
+            <span id="header-op" class="min-w-0 font-bold text-slate-200 truncate"></span>
+            <span id="header-bg-running" class="hidden shrink-0 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="Another study's clock is running"></span>
+            <span id="header-study-count" class="hidden shrink-0 bg-blue-500 text-white rounded-full px-1.5 text-[10px] font-bold leading-4"></span>
+            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] shrink-0"></i>
+        </button>
     </header>
+
+    <!-- Short status message (top centre) -->
+    <div id="toast" class="hidden fixed top-14 left-1/2 -translate-x-1/2 z-[60] max-w-[90vw] bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-lg shadow-xl print-hidden"></div>
 
     <!-- MAIN CONTENT AREA -->
     <main id="main-content" class="flex-grow relative overflow-y-auto">
@@ -870,8 +878,8 @@
 
     <!-- BOTTOM REVIEW BAR (visible during review phase) -->
     <div id="review-bar" class="review-bar hidden print-hidden">
-        <button onclick="app.triggerNewSession()" class="text-slate-400 hover:text-red-500 px-2 py-2 text-xs font-medium btn-touch" title="Start a new session">
-            <i class="fa-solid fa-rotate-left sm:mr-1"></i><span class="hidden sm:inline">New</span>
+        <button onclick="app.newStudy()" class="text-slate-500 hover:text-blue-600 px-2 py-2 text-xs font-bold btn-touch" title="Start a new study (this one stays in your studies list)">
+            <i class="fa-solid fa-plus sm:mr-1"></i><span class="hidden sm:inline">New</span>
         </button>
         <div class="flex items-center gap-1.5">
             <button onclick="app.openShare()"
@@ -909,6 +917,33 @@
             </button>
             <button onclick="app.closeShare()"
                 class="w-full text-center text-slate-500 font-semibold py-2.5 mt-1 btn-touch">Cancel</button>
+        </div>
+    </div>
+
+    <!-- STUDIES LIST (switch, start new, delete) -->
+    <div id="modal-studies"
+        class="hidden fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm print-hidden"
+        onclick="if (event.target === this) app.closeStudies()">
+        <div class="bg-white w-full max-w-md rounded-xl shadow-2xl flex flex-col max-h-[85dvh]">
+            <div class="flex items-center justify-between pl-4 pr-2 pt-3 pb-2">
+                <div class="text-xs font-bold text-slate-400 uppercase tracking-wide">Studies</div>
+                <button onclick="app.closeStudies()" class="text-slate-400 hover:text-slate-600 w-9 h-9 btn-touch" title="Close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="studies-search-wrap" class="hidden px-3 pb-2">
+                <input id="studies-search" type="search" oninput="app.renderStudies()" autocomplete="off"
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none"
+                    placeholder="Search operation, operator, date...">
+            </div>
+            <div id="studies-list" class="flex-1 min-h-0 overflow-y-auto px-2 pb-2 space-y-1"></div>
+            <div class="border-t px-3 pt-3 pb-2 flex items-center gap-2">
+                <button id="btn-delete-finished" onclick="app.triggerDeleteFinished()"
+                    class="hidden text-xs font-bold text-red-500 hover:text-red-600 px-1 py-2 btn-touch">
+                    <i class="fa-solid fa-trash-can mr-1"></i>Delete finished</button>
+                <button onclick="app.newStudy()"
+                    class="ml-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm btn-touch">
+                    <i class="fa-solid fa-plus mr-1.5"></i>New study</button>
+            </div>
+            <p class="px-4 pb-3 text-[11px] text-slate-400">Studies are saved in this browser only. Share any study you need to keep.</p>
         </div>
     </div>
 
@@ -986,23 +1021,6 @@
         </div>
     </div>
 
-    <!-- SESSION RECOVERY MODAL -->
-    <div id="modal-recovery"
-        class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-sm rounded-xl p-6 shadow-2xl text-center">
-            <div class="text-4xl mb-3"><i class="fa-solid fa-rotate-left text-blue-500"></i></div>
-            <h3 class="text-xl font-bold text-gray-800 mb-2">Session Found</h3>
-            <p class="text-gray-500 mb-2 text-sm">A previous in-progress session was found.</p>
-            <p id="recovery-info" class="text-gray-600 mb-5 text-xs font-mono bg-gray-50 rounded p-2"></p>
-            <div class="flex gap-3">
-                <button onclick="app.discardSession()"
-                    class="flex-1 py-3 font-bold text-slate-500 bg-slate-100 rounded-lg hover:bg-slate-200 transition">Discard</button>
-                <button onclick="app.recoverSession()"
-                    class="flex-1 py-3 font-bold text-white bg-blue-500 rounded-lg shadow-lg hover:bg-blue-600 transition">Resume</button>
-            </div>
-        </div>
-    </div>
-
     <script>
         // --- APP STATE ---
         const app = {
@@ -1040,6 +1058,12 @@
             rowToDeleteIndex: null,
             tempDuration: 0,
 
+            // --- STUDIES ---
+            // Every study on this device, as saved records. The open study lives in `state`;
+            // its record here is refreshed by autoSave. activeId is null on the setup screen.
+            studies: [],
+            activeId: null,
+
             // --- DOM ELEMENTS ---
             els: {
                 views: {
@@ -1060,7 +1084,9 @@
                     split: document.getElementById('header-split'),
                     splitContainer: document.getElementById('header-split-container'),
                     opName: document.getElementById('header-op-name'),
-                    op: document.getElementById('header-op')
+                    op: document.getElementById('header-op'),
+                    studyCount: document.getElementById('header-study-count'),
+                    bgRunning: document.getElementById('header-bg-running')
                 },
                 timer: {
                     splitBtn: document.getElementById('btn-split'),
@@ -1092,8 +1118,7 @@
                     liveIndicator: document.getElementById('modal-live-indicator'),
                     liveStatus: document.getElementById('modal-live-status'),
                     liveSplit: document.getElementById('modal-live-split'),
-                    recoveryModal: document.getElementById('modal-recovery'),
-                    recoveryInfo: document.getElementById('recovery-info')
+                    studies: document.getElementById('modal-studies')
                 },
                 chips: {
                     container: document.getElementById('chip-container'),
@@ -1140,29 +1165,48 @@
             },
 
             // --- PERSISTENCE ---
-            autoSave: function () {
-                const session = {
+            // All studies live under one key: { activeId, studies: [record, ...] }.
+            // A record keeps its timer as offsets (elapsed so far at savedAt), so a study whose
+            // clock is running keeps counting while another study is open.
+            studyRecord: function () {
+                const old = this.studies.find(s => s.id === this.activeId);
+                return {
+                    id: this.activeId,
+                    createdAt: old ? old.createdAt : Date.now(),
                     meta: this.state.meta,
                     observations: this.state.observations,
                     phase: this.state.phase,
-                    history: this.state.history,
                     totalElapsedAtEnd: this.state.totalElapsedAtEnd,
-                    // Timer state (relative offsets so we can resume)
                     timer: {
                         isRunning: this.state.isRunning,
                         isPaused: this.state.isPaused,
-                        // Store as offsets from Date.now() so we can reconstruct on load
                         elapsedSoFar: this.getElapsedMs(),
                         splitElapsedSoFar: this.getSplitElapsedMs(),
                         pauseTime: this.state.pauseTime
                     },
                     savedAt: Date.now()
                 };
+            },
+
+            autoSave: function () {
+                if (!this.activeId) return; // setup screen: no study open
+                const rec = this.studyRecord();
+                const i = this.studies.findIndex(s => s.id === this.activeId);
+                if (i >= 0) this.studies[i] = rec;
+                else this.studies.push(rec);
+                this.persistStudies();
+            },
+
+            persistStudies: function () {
                 try {
-                    localStorage.setItem('kaizen_session', JSON.stringify(session));
+                    localStorage.setItem('kaizen_studies', JSON.stringify({ activeId: this.activeId, studies: this.studies }));
+                    this._saveFailed = false;
                 } catch (e) {
-                    // localStorage full or unavailable — silent fail
-                    console.warn('autoSave failed:', e);
+                    console.warn('save failed:', e);
+                    if (!this._saveFailed) {
+                        this._saveFailed = true;
+                        this.toast('Could not save: browser storage is full or blocked. Share and delete old studies.', 6000);
+                    }
                 }
             },
 
@@ -1182,95 +1226,147 @@
                 return Date.now() - this.state.currentSplitStart;
             },
 
-            loadSession: function () {
-                try {
-                    const raw = localStorage.getItem('kaizen_session');
-                    if (!raw) return null;
-                    return JSON.parse(raw);
-                } catch (e) {
-                    return null;
-                }
+            newStudyId: function () {
+                return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
             },
 
-            clearSession: function () {
-                localStorage.removeItem('kaizen_session');
-                localStorage.removeItem('kaizen_heartbeat');
+            isRecordRunning: function (rec) {
+                if (rec.id === this.activeId) return this.state.isRunning;
+                return rec.phase === 'capture' && !!(rec.timer && rec.timer.isRunning);
             },
 
-            // Tiny timer snapshot written every few seconds while the clock runs, so a closed tab
-            // loses at most a few seconds of clock (the full session is saved on real events).
+            // Tiny note written every few seconds naming the studies whose clock is running, so a
+            // closed tab loses at most a few seconds of clock (full records are saved on real events).
             saveHeartbeat: function () {
+                const running = this.studies.filter(s => this.isRecordRunning(s)).map(s => s.id);
+                if (!running.length) return;
                 try {
-                    localStorage.setItem('kaizen_heartbeat', JSON.stringify({
-                        t: Date.now(),
-                        elapsed: this.getElapsedMs(),
-                        split: this.getSplitElapsedMs()
-                    }));
+                    localStorage.setItem('kaizen_heartbeat', JSON.stringify({ t: Date.now(), running }));
                 } catch (e) { /* storage unavailable: ignore */ }
             },
 
-            loadHeartbeat: function () {
+            // Older versions kept one study under kaizen_session (heartbeat {t, elapsed, split}).
+            migrateOldSession: function () {
+                let session = null, beat = null;
                 try {
-                    const raw = localStorage.getItem('kaizen_heartbeat');
-                    return raw ? JSON.parse(raw) : null;
-                } catch (e) {
-                    return null;
+                    session = JSON.parse(localStorage.getItem('kaizen_session'));
+                    beat = JSON.parse(localStorage.getItem('kaizen_heartbeat'));
+                } catch (e) { /* unreadable: nothing to migrate */ }
+                if (!session || !session.timer || !(session.observations && session.observations.length) || session.phase === 'setup') return null;
+
+                if (session.phase === 'capture' && beat && beat.t > (session.savedAt || 0) && beat.elapsed !== undefined) {
+                    session.timer.elapsedSoFar = beat.elapsed || session.timer.elapsedSoFar;
+                    session.timer.splitElapsedSoFar = beat.split || session.timer.splitElapsedSoFar;
+                    session.savedAt = beat.t;
+                }
+                const rec = {
+                    id: this.newStudyId(),
+                    createdAt: session.savedAt || Date.now(),
+                    meta: session.meta || {},
+                    observations: session.observations,
+                    phase: session.phase,
+                    totalElapsedAtEnd: session.totalElapsedAtEnd || 0,
+                    timer: session.timer,
+                    savedAt: session.savedAt || Date.now()
+                };
+                return { activeId: rec.id, studies: [rec] };
+            },
+
+            // Read the studies from storage. Clocks that were running when the page closed come back
+            // paused at the last heartbeat. Reopens the study that was open.
+            loadStudies: function () {
+                let data = null;
+                try {
+                    data = JSON.parse(localStorage.getItem('kaizen_studies'));
+                } catch (e) { /* unreadable: start empty */ }
+                if (!data) {
+                    data = this.migrateOldSession();
+                    try {
+                        localStorage.removeItem('kaizen_session');
+                        localStorage.removeItem('kaizen_heartbeat');
+                    } catch (e) { /* ignore */ }
+                }
+                if (!data || !Array.isArray(data.studies)) {
+                    this.updateStudyButton();
+                    return;
+                }
+
+                let beat = null;
+                try { beat = JSON.parse(localStorage.getItem('kaizen_heartbeat')); } catch (e) { /* none */ }
+
+                const now = Date.now();
+                let paused = 0;
+                this.studies = data.studies.filter(s => s && s.id && s.timer);
+                this.studies.forEach(rec => {
+                    if (rec.phase !== 'capture' || !rec.timer.isRunning) return;
+                    // The clock ran on after the last full save, up to the last heartbeat
+                    if (beat && Array.isArray(beat.running) && beat.running.includes(rec.id) && beat.t > rec.savedAt) {
+                        const ranOn = beat.t - rec.savedAt;
+                        rec.timer.elapsedSoFar = (rec.timer.elapsedSoFar || 0) + ranOn;
+                        rec.timer.splitElapsedSoFar = (rec.timer.splitElapsedSoFar || 0) + ranOn;
+                    }
+                    rec.timer.isRunning = false;
+                    rec.timer.isPaused = true;
+                    rec.savedAt = now;
+                    paused++;
+                });
+
+                const active = this.studies.find(s => s.id === data.activeId);
+                this.activeId = active ? active.id : null;
+                if (active) this.loadStudy(active);
+                this.persistStudies();
+                this.updateStudyButton();
+                if (paused) {
+                    this.toast(paused === 1 ? 'Clock paused while the app was closed. Tap RESUME to carry on.'
+                        : `${paused} study clocks paused while the app was closed.`, 4500);
                 }
             },
 
-            recoverSession: function () {
-                const session = this.loadSession();
-                if (!session) return;
-
-                this.els.modal.recoveryModal.classList.add('hidden');
-
-                // Restore state
-                this.state.meta = session.meta;
-                this.state.observations = session.observations || [];
-                this.state.history = session.history || this.state.history;
-                this.state.totalElapsedAtEnd = session.totalElapsedAtEnd || 0;
-                this.state.pauseTime = session.timer.pauseTime || 0;
-
-                // Reconstruct timer anchors from saved elapsed offsets
+            // Put a saved study on screen. A running clock carries on from where it would be now.
+            loadStudy: function (rec) {
                 const now = Date.now();
-                let elapsedMs = session.timer.elapsedSoFar || 0;
-                let splitMs = session.timer.splitElapsedSoFar || 0;
+                const t = rec.timer || {};
+                this._loopId = (this._loopId || 0) + 1; // stop the previous study's display loop
 
-                // A heartbeat newer than the last full save means the clock kept running after it
-                const beat = this.loadHeartbeat();
-                if (session.phase === 'capture' && beat && beat.t > (session.savedAt || 0)) {
-                    elapsedMs = beat.elapsed || elapsedMs;
-                    splitMs = beat.split || splitMs;
-                }
+                this.state.meta = rec.meta || {};
+                this.state.observations = rec.observations || [];
+                this.state.totalElapsedAtEnd = rec.totalElapsedAtEnd || 0;
+                this.state.pauseTime = t.pauseTime || 0;
+                this.state.previousSplitStart = null;
 
-                if (session.phase === 'capture') {
-                    // Restore into paused state so user can manually resume
-                    this.state.startTime = now - elapsedMs;
-                    this.state.currentSplitStart = now - splitMs;
-                    this.state.isRunning = false;
-                    this.state.isPaused = true;
-                    this.state.pauseStart = now;
+                const running = rec.phase === 'capture' && !!t.isRunning;
+                const ranOn = running ? Math.max(0, now - (rec.savedAt || now)) : 0;
+                this.state.startTime = now - ((t.elapsedSoFar || 0) + ranOn);
+
+                if (rec.phase === 'capture') {
+                    this.state.currentSplitStart = now - ((t.splitElapsedSoFar || 0) + ranOn);
+                    this.state.isRunning = running;
+                    this.state.isPaused = !running;
+                    this.state.pauseStart = running ? null : now;
 
                     this.syncCaptureControls();
-                    // Set up the header
                     this.setupHeaderForCapture();
                     this.updateHeaderTimers();
                     this.switchToPhase('capture');
-                } else if (session.phase === 'review') {
-                    // Restore elapsed from when capture ended
-                    this.state.startTime = now - elapsedMs;
+                    if (running) this.runTimerLoop();
+                } else {
                     this.state.currentSplitStart = null;
                     this.state.isRunning = false;
                     this.state.isPaused = false;
+                    this.state.pauseStart = null;
 
                     this.setupHeaderForReview();
                     this.switchToPhase('review');
                 }
+                this.els.mainContent.scrollTop = 0;
             },
 
-            discardSession: function () {
-                this.clearSession();
-                this.els.modal.recoveryModal.classList.add('hidden');
+            toast: function (message, ms = 3000) {
+                const el = document.getElementById('toast');
+                el.textContent = message;
+                el.classList.remove('hidden');
+                clearTimeout(this._toastTimer);
+                this._toastTimer = setTimeout(() => el.classList.add('hidden'), ms);
             },
 
             // --- INITIALIZATION ---
@@ -1308,18 +1404,6 @@
                     } catch (e) { /* ignore */ }
                 }
                 this.applySetupOptions();
-
-                // Check for session recovery
-                const saved = this.loadSession();
-                if (saved && saved.observations && saved.observations.length > 0) {
-                    // Show recovery modal
-                    const elCount = saved.observations.length;
-                    const opName = saved.meta.operation || 'Unknown';
-                    const phase = saved.phase || 'capture';
-                    this.els.modal.recoveryInfo.textContent =
-                        `"${opName}" — ${elCount} element(s) captured — ${phase} phase`;
-                    this.els.modal.recoveryModal.classList.remove('hidden');
-                }
 
                 // Event Listeners
                 this.els.timer.splitBtn.addEventListener('mousedown', (e) => { e.preventDefault(); this.triggerSplit(); });
@@ -1368,6 +1452,10 @@
                             this.saveElement();
                         }
                     }
+                    if (e.key === 'Escape' && this.isStudiesOpen()) {
+                        this.closeStudies();
+                        return;
+                    }
                     if (this.isModalOpen() && e.key === 'Escape') {
                         if (!this.els.modal.overlay.classList.contains('hidden')) {
                             this.closeModal();
@@ -1381,6 +1469,9 @@
                 });
 
                 this.updateModalPauseButton();
+
+                // Reopen saved studies (and bring over a study saved by an older version)
+                this.loadStudies();
             },
 
             // --- VIEW MANAGEMENT ---
@@ -1397,7 +1488,6 @@
                     this.els.views.setup.classList.remove('hidden');
                     this.els.header.timers.classList.add('hidden');
                     this.els.header.timers.classList.remove('flex');
-                    this.els.header.opName.classList.add('hidden');
                 } else if (phase === 'capture') {
                     this.els.views.study.classList.remove('hidden');
                     this.els.bars.capture.classList.remove('hidden');
@@ -1410,10 +1500,12 @@
                 }
 
                 this.autoSave();
+                this.updateStudyButton();
             },
 
             isModalOpen: function () {
-                return !this.els.modal.overlay.classList.contains('hidden') || !this.els.modal.confirmModal.classList.contains('hidden');
+                return !this.els.modal.overlay.classList.contains('hidden') || !this.els.modal.confirmModal.classList.contains('hidden') ||
+                    this.isStudiesOpen();
             },
 
             // --- HEADER MANAGEMENT ---
@@ -1421,16 +1513,12 @@
                 this.els.header.timers.classList.remove('hidden');
                 this.els.header.timers.classList.add('flex');
                 this.els.header.splitContainer.classList.remove('hidden');
-                this.els.header.opName.classList.remove('hidden');
-                this.els.header.op.innerText = this.state.meta.operation;
             },
 
             setupHeaderForReview: function () {
                 this.els.header.timers.classList.remove('hidden');
                 this.els.header.timers.classList.add('flex');
                 this.els.header.splitContainer.classList.add('hidden'); // No split timer in review
-                this.els.header.opName.classList.remove('hidden');
-                this.els.header.op.innerText = this.state.meta.operation;
 
                 // Show final elapsed
                 const elapsed = this.state.totalElapsedAtEnd || this.getElapsedMs();
@@ -1779,6 +1867,10 @@
                 this.state.pauseStart = null;
                 this.state.observations = [];
                 this.state.totalElapsedAtEnd = 0;
+                this.activeId = this.newStudyId();
+
+                // Ask the browser not to clear this site's storage under pressure (best effort)
+                if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
                 this.syncCaptureControls();
                 this.setupHeaderForCapture();
@@ -2260,23 +2352,9 @@
                 this.togglePause();
             },
 
-            triggerNewSession: function () {
-                this.els.modal.confirmTitle.innerText = "Start New Session?";
-                this.els.modal.confirmBody.innerText = "This will clear all captured data and return to the setup screen. This cannot be undone.";
-                this.els.modal.confirmBtn.innerText = "Clear & Start New";
-                this.els.modal.confirmBtn.className = "flex-1 py-3 font-bold text-white bg-red-500 rounded-lg shadow-lg";
-                this.els.modal.confirmBtn.onclick = () => this.confirmNewSession();
-                this.els.modal.confirmCancelBtn.onclick = () => {
-                    this.els.modal.confirmModal.classList.add('hidden');
-                };
-                this.els.modal.confirmModal.classList.remove('hidden');
-            },
-
-            confirmNewSession: function () {
-                this.els.modal.confirmModal.classList.add('hidden');
-                this.clearSession();
-
-                // Reset state
+            // --- STUDIES: SWITCH / NEW / DELETE ---
+            resetStudyState: function () {
+                this._loopId = (this._loopId || 0) + 1;
                 this.state.observations = [];
                 this.state.meta = {};
                 this.state.isRunning = false;
@@ -2287,8 +2365,203 @@
                 this.state.pauseTime = 0;
                 this.state.pauseStart = null;
                 this.state.totalElapsedAtEnd = 0;
+            },
 
+            // Save the open study and close anything that belongs to it (a half-named split is cancelled).
+            // Its clock is left as it is: running studies keep running in the background.
+            leaveActiveStudy: function () {
+                if (!this.els.modal.overlay.classList.contains('hidden')) this.closeModal();
+                this.els.modal.confirmModal.classList.add('hidden');
+                this.closeShare();
+                this.autoSave();
+                this._loopId = (this._loopId || 0) + 1;
+            },
+
+            switchStudy: function (id) {
+                const rec = this.studies.find(s => s.id === id);
+                if (!rec) return;
+                if (id !== this.activeId) {
+                    this.leaveActiveStudy();
+                    this.activeId = id;
+                    this.loadStudy(rec);
+                    this.persistStudies();
+                }
+                this.closeStudies();
+            },
+
+            // Go to setup for a new study. Every existing study stays in the list.
+            newStudy: function () {
+                this.leaveActiveStudy();
+                this.activeId = null;
+                this.resetStudyState();
+                this.persistStudies();
+                this.closeStudies();
                 this.switchToPhase('setup');
+                this.els.mainContent.scrollTop = 0;
+            },
+
+            updateStudyButton: function () {
+                const inStudy = this.state.phase !== 'setup';
+                const count = this.studies.length;
+                const show = inStudy || count > 0;
+                const btn = this.els.header.opName;
+                btn.classList.toggle('hidden', !show);
+                btn.classList.toggle('flex', show);
+                this.els.header.op.innerText = inStudy ? (this.state.meta.operation || 'Study') : 'Studies';
+                this.els.header.studyCount.textContent = count;
+                this.els.header.studyCount.classList.toggle('hidden', inStudy ? count < 2 : count < 1);
+                const otherRunning = this.studies.some(s => s.id !== this.activeId && this.isRecordRunning(s));
+                this.els.header.bgRunning.classList.toggle('hidden', !otherRunning);
+            },
+
+            isStudiesOpen: function () {
+                return !this.els.modal.studies.classList.contains('hidden');
+            },
+
+            openStudies: function () {
+                this.autoSave(); // so the open study's row is current
+                document.getElementById('studies-search').value = '';
+                this.renderStudies();
+                this.els.modal.studies.classList.remove('hidden');
+                clearInterval(this._studiesTimer);
+                this._studiesTimer = setInterval(() => this.updateStudyClocks(), 1000);
+            },
+
+            closeStudies: function () {
+                this.els.modal.studies.classList.add('hidden');
+                clearInterval(this._studiesTimer);
+            },
+
+            // Clock time of any study: live for the open one, worked out from its record otherwise
+            studyElapsedMs: function (rec) {
+                if (rec.id === this.activeId) {
+                    return this.state.phase === 'review' ? this.state.totalElapsedAtEnd : this.getElapsedMs();
+                }
+                if (rec.phase === 'review') return rec.totalElapsedAtEnd || 0;
+                const t = rec.timer || {};
+                return (t.elapsedSoFar || 0) + (this.isRecordRunning(rec) ? Math.max(0, Date.now() - rec.savedAt) : 0);
+            },
+
+            formatClock: function (ms) {
+                const s = Math.floor(ms / 1000);
+                return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+            },
+
+            studyStatus: function (rec) {
+                if (rec.phase === 'review') return { label: 'Done', dot: 'bg-slate-400', text: 'text-slate-400' };
+                if (this.isRecordRunning(rec)) return { label: 'Running', dot: 'bg-emerald-500 animate-pulse', text: 'text-emerald-600' };
+                return { label: 'Paused', dot: 'bg-amber-400', text: 'text-amber-600' };
+            },
+
+            renderStudies: function () {
+                const list = document.getElementById('studies-list');
+                const searchWrap = document.getElementById('studies-search-wrap');
+                const query = document.getElementById('studies-search').value.trim().toLowerCase();
+                searchWrap.classList.toggle('hidden', this.studies.length <= 5);
+
+                const sorted = this.studies.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+                const shown = sorted.filter(rec => {
+                    if (!query) return true;
+                    const m = rec.meta || {};
+                    const text = [m.operation, m.operatorName, m.department, m.documentedBy, m.date,
+                        ...(m.custom || []).map(f => f.value)].join(' ').toLowerCase();
+                    return text.includes(query);
+                });
+
+                const esc = (t) => this.escapeHtml(String(t == null ? '' : t));
+                if (!this.studies.length) {
+                    list.innerHTML = '<p class="text-sm text-slate-400 text-center py-6">No studies yet.</p>';
+                } else if (!shown.length) {
+                    list.innerHTML = '<p class="text-sm text-slate-400 text-center py-6">No studies match.</p>';
+                } else {
+                    list.innerHTML = shown.map(rec => {
+                        const m = rec.meta || {};
+                        const obs = rec.observations || [];
+                        const total = obs.reduce((acc, o) => acc + o.duration, 0);
+                        const st = this.studyStatus(rec);
+                        const open = rec.id === this.activeId;
+                        const details = [m.operatorName, m.date, `${obs.length} el. · ${this.secondsToMMSS(total)}`].filter(Boolean).map(esc).join(' · ');
+                        return `
+                        <div class="flex items-center rounded-lg ${open ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-slate-50'}">
+                            <button onclick="app.switchStudy('${rec.id}')" class="flex-1 min-w-0 flex items-center gap-3 text-left pl-2.5 pr-1 py-2.5 btn-touch">
+                                <span class="w-2.5 h-2.5 rounded-full shrink-0 ${st.dot}"></span>
+                                <span class="flex-1 min-w-0">
+                                    <span class="flex items-center gap-1.5">
+                                        <span class="font-bold text-slate-800 truncate">${esc(m.operation || 'Untitled')}</span>
+                                        ${open ? '<span class="shrink-0 text-[10px] font-bold text-blue-600 uppercase">Open</span>' : ''}
+                                    </span>
+                                    <span class="block text-xs text-slate-500 truncate">${details}</span>
+                                </span>
+                                <span class="shrink-0 text-right">
+                                    <span class="block font-mono font-bold text-sm text-slate-700" data-study-clock="${rec.id}">${this.formatClock(this.studyElapsedMs(rec))}</span>
+                                    <span class="block text-[10px] font-bold uppercase ${st.text}">${st.label}</span>
+                                </span>
+                            </button>
+                            <button onclick="app.triggerDeleteStudy('${rec.id}')" class="shrink-0 w-10 h-10 text-slate-300 hover:text-red-500 btn-touch" title="Delete study">
+                                <i class="fa-solid fa-trash-can text-sm"></i></button>
+                        </div>`;
+                    }).join('');
+                }
+
+                const finished = this.studies.filter(s => s.phase === 'review').length;
+                const delBtn = document.getElementById('btn-delete-finished');
+                delBtn.classList.toggle('hidden', finished < 2);
+                delBtn.innerHTML = `<i class="fa-solid fa-trash-can mr-1"></i>Delete finished (${finished})`;
+            },
+
+            updateStudyClocks: function () {
+                document.querySelectorAll('[data-study-clock]').forEach(el => {
+                    const rec = this.studies.find(s => s.id === el.getAttribute('data-study-clock'));
+                    if (rec && this.isRecordRunning(rec)) el.textContent = this.formatClock(this.studyElapsedMs(rec));
+                });
+            },
+
+            confirmAction: function (title, body, label, action) {
+                const m = this.els.modal;
+                m.confirmTitle.innerText = title;
+                m.confirmBody.innerText = body;
+                m.confirmBtn.innerText = label;
+                m.confirmBtn.className = "flex-1 py-3 font-bold text-white bg-red-500 rounded-lg shadow-lg";
+                m.confirmBtn.setAttribute('data-was-running', 'false');
+                m.confirmBtn.onclick = () => {
+                    m.confirmModal.classList.add('hidden');
+                    action();
+                };
+                m.confirmCancelBtn.onclick = () => m.confirmModal.classList.add('hidden');
+                m.confirmModal.classList.remove('hidden');
+            },
+
+            triggerDeleteStudy: function (id) {
+                const rec = this.studies.find(s => s.id === id);
+                if (!rec) return;
+                const n = (rec.observations || []).length;
+                const name = (rec.meta && rec.meta.operation) || 'Untitled';
+                this.confirmAction('Delete Study?',
+                    `"${name}" (${n} element${n === 1 ? '' : 's'}) will be removed from this device. This cannot be undone.`,
+                    'Delete', () => this.deleteStudies([id]));
+            },
+
+            triggerDeleteFinished: function () {
+                const ids = this.studies.filter(s => s.phase === 'review').map(s => s.id);
+                if (!ids.length) return;
+                this.confirmAction('Delete Finished Studies?',
+                    `Remove all ${ids.length} finished studies from this device? Studies still being captured are kept. This cannot be undone.`,
+                    `Delete ${ids.length}`, () => this.deleteStudies(ids));
+            },
+
+            deleteStudies: function (ids) {
+                this.studies = this.studies.filter(s => !ids.includes(s.id));
+                if (ids.includes(this.activeId)) {
+                    if (!this.els.modal.overlay.classList.contains('hidden')) this.closeModal();
+                    this.closeShare();
+                    this.activeId = null;
+                    this.resetStudyState();
+                    this.switchToPhase('setup');
+                }
+                this.persistStudies();
+                this.updateStudyButton();
+                if (this.studies.length) this.renderStudies();
+                else this.closeStudies();
             },
 
             // --- LOGIC: EDIT HANDLERS ---
@@ -2311,7 +2584,7 @@
                 if (el.tagName === 'INPUT') el.value = value || '';
                 else el.innerText = value || '';
 
-                if (key === 'operation') this.els.header.op.innerText = value;
+                if (key === 'operation') this.updateStudyButton();
                 if (key === 'taktTime') this.renderTable(); // manpower depends on TAKT
                 this.autoSave();
             },
@@ -2811,7 +3084,7 @@
         })();
 
         // Heartbeat while the clock runs; full save whenever the page is hidden or closed
-        setInterval(() => { if (app.state.isRunning) app.saveHeartbeat(); }, 5000);
+        setInterval(() => app.saveHeartbeat(), 5000);
         const saveIfCapturing = () => { if (app.state.phase === 'capture') app.autoSave(); };
         document.addEventListener('visibilitychange', () => { if (document.hidden) saveIfCapturing(); });
         window.addEventListener('pagehide', saveIfCapturing);
