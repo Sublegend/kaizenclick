@@ -1701,6 +1701,8 @@
                 if (!count) return;
                 this.els.modal.confirmTitle.innerText = "Clear Suggestions?";
                 this.els.modal.confirmBody.innerText = `Remove all ${count} saved element names from the suggestion list? Studies you have already captured are not affected.`;
+                this.els.modal.confirmBody.classList.remove('hidden');
+                this.els.modal.confirmTitle.classList.remove('mb-5');
                 this.els.modal.confirmBtn.innerText = "Clear all";
                 this.els.modal.confirmBtn.className = "flex-1 py-3 font-bold text-white bg-red-500 rounded-lg shadow-lg";
                 this.els.modal.confirmBtn.onclick = () => this.confirmClearSuggestions();
@@ -1938,9 +1940,9 @@
 
             triggerResetSplit: function () {
                 if (this.state.phase !== 'capture' || !this.state.isPaused || this.isModalOpen()) return;
-                this.confirmAction('Reset Split Clock?',
-                    'Set the current split back to 0:00. Use this when the clock ran during time that should not count. The elapsed clock is not changed.',
-                    'Reset split', () => {
+                this.confirmAction('Reset split clock?', '', 'Reset', () => {
+                        // The split's time comes off the elapsed clock too, as if paused at the last split
+                        this.state.startTime += this.state.pauseStart - this.state.currentSplitStart;
                         this.state.currentSplitStart = this.state.pauseStart;
                         this.state.previousSplitStart = null;
                         this.updateHeaderTimers();
@@ -2341,6 +2343,8 @@
 
                 this.els.modal.confirmTitle.innerText = "End Capture?";
                 this.els.modal.confirmBody.innerText = "This will stop the timer and move to the review screen. You can resume capture later.";
+                this.els.modal.confirmBody.classList.remove('hidden');
+                this.els.modal.confirmTitle.classList.remove('mb-5');
                 this.els.modal.confirmBtn.innerText = "End Capture";
                 this.els.modal.confirmBtn.onclick = () => this.finalizeCapture();
                 this.els.modal.confirmModal.classList.remove('hidden');
@@ -2548,6 +2552,8 @@
                 const m = this.els.modal;
                 m.confirmTitle.innerText = title;
                 m.confirmBody.innerText = body;
+                m.confirmBody.classList.toggle('hidden', !body);
+                m.confirmTitle.classList.toggle('mb-5', !body);
                 m.confirmBtn.innerText = label;
                 m.confirmBtn.className = "flex-1 py-3 font-bold text-white bg-red-500 rounded-lg shadow-lg";
                 m.confirmBtn.setAttribute('data-was-running', 'false');
@@ -2764,6 +2770,8 @@
                 this.rowToDeleteIndex = index;
                 this.els.modal.confirmTitle.innerText = "Confirm Deletion";
                 this.els.modal.confirmBody.innerText = `Are you sure you want to delete element #${index + 1}: ${this.state.observations[index].description}?`;
+                this.els.modal.confirmBody.classList.remove('hidden');
+                this.els.modal.confirmTitle.classList.remove('mb-5');
                 this.els.modal.confirmBtn.innerText = "Delete";
                 this.els.modal.confirmBtn.className = "flex-1 py-3 font-bold text-white bg-red-500 rounded-lg shadow-lg";
                 this.els.modal.confirmBtn.onclick = () => this.confirmDeleteRow();
