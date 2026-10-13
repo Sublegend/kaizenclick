@@ -22,6 +22,13 @@ You can keep several studies on the device and switch between them. Tap the stud
 - **Delete** a study with its bin icon, or clear out all finished ones with **Delete finished**.
 - **Search** appears once you have more than five studies.
 
+### Import and back up
+
+Studies are kept in the browser, which IT policies or a cleanup can wipe, so treat a shared file as the real copy.
+
+- **Excel exports can be imported.** An Excel file shared from the app carries the full study in a hidden sheet. **Import** (in the studies list) brings it back exactly, with notes, options and custom fields. If you changed element names or times in Excel, those edits are used. Older exports without the hidden sheet are read from the visible sheet. PDFs can't be imported.
+- **Back up all** puts every study into one Excel file to email or save. Importing it restores them all (studies already on the device are skipped). The list shows when you last backed up.
+
 ## Options
 
 Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Cumulative and Notes on or off at any time.

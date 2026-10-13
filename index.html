@@ -936,7 +936,17 @@
                     placeholder="Search operation, operator, date...">
             </div>
             <div id="studies-list" class="flex-1 min-h-0 overflow-y-auto px-2 pb-2 space-y-1"></div>
-            <div class="border-t px-3 pt-3 pb-2 flex items-center gap-2">
+            <div class="border-t px-3 pt-3 flex gap-2">
+                <button onclick="document.getElementById('import-file').click()"
+                    class="flex-1 bg-white border border-slate-300 text-slate-700 font-bold px-3 py-2 rounded-lg text-sm btn-touch">
+                    <i class="fa-solid fa-file-import mr-1.5 text-slate-500"></i>Import</button>
+                <button onclick="app.backupAll()"
+                    class="flex-1 bg-white border border-slate-300 text-slate-700 font-bold px-3 py-2 rounded-lg text-sm btn-touch">
+                    <i class="fa-solid fa-box-archive mr-1.5 text-slate-500"></i>Back up all</button>
+                <input type="file" id="import-file" class="hidden" onchange="app.importFromInput(this)"
+                    accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+            </div>
+            <div class="px-3 pt-2 pb-2 flex items-center gap-2">
                 <button id="btn-delete-finished" onclick="app.triggerDeleteFinished()"
                     class="hidden text-xs font-bold text-red-500 hover:text-red-600 px-1 py-2 btn-touch">
                     <i class="fa-solid fa-trash-can mr-1"></i>Delete finished</button>
@@ -944,7 +954,7 @@
                     class="ml-auto bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-lg text-sm btn-touch">
                     <i class="fa-solid fa-plus mr-1.5"></i>New study</button>
             </div>
-            <p class="px-4 pb-3 text-[11px] text-slate-400">Studies are saved in this browser only. Share any study you need to keep.</p>
+            <p id="studies-backup-note" class="px-4 pb-3 text-[11px] text-slate-400"></p>
         </div>
     </div>
 
@@ -2435,10 +2445,9 @@
             updateStudyButton: function () {
                 const inStudy = this.state.phase !== 'setup';
                 const count = this.studies.length;
-                const show = inStudy || count > 0;
-                const btn = this.els.header.opName;
-                btn.classList.toggle('hidden', !show);
-                btn.classList.toggle('flex', show);
+                // Always shown, so Import is reachable before the first study
+                this.els.header.opName.classList.remove('hidden');
+                this.els.header.opName.classList.add('flex');
                 this.els.header.op.innerText = inStudy ? (this.state.meta.operation || 'Study') : 'Studies';
                 this.els.header.studyCount.textContent = count;
                 this.els.header.studyCount.classList.toggle('hidden', inStudy ? count < 2 : count < 1);
@@ -2539,6 +2548,17 @@
                 const delBtn = document.getElementById('btn-delete-finished');
                 delBtn.classList.toggle('hidden', finished < 2);
                 delBtn.innerHTML = `<i class="fa-solid fa-trash-can mr-1"></i>Delete finished (${finished})`;
+
+                let last = 0;
+                try { last = +localStorage.getItem('kaizen_last_backup') || 0; } catch (e) { /* unavailable */ }
+                let when = 'Not backed up yet';
+                if (last) {
+                    const day = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+                    const days = Math.round((day(Date.now()) - day(last)) / 86400000);
+                    when = 'Last backup: ' + (days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`);
+                }
+                document.getElementById('studies-backup-note').textContent =
+                    `Studies are saved in this browser only. ${when}.`;
             },
 
             updateStudyClocks: function () {
@@ -2825,13 +2845,10 @@
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 20 }, ...(showNotes ? [{ wch: 40 }] : [])];
                 XLSX.utils.book_append_sheet(wb, ws, "Time Study");
-                const filename = `TimeStudy_${this.state.meta.operation.replace(/\s+/g, '_')}_${this.state.meta.date}.xlsx`;
+                this.autoSave();
+                this.appendDataSheet(wb, this.studies.filter(s => s.id === this.activeId));
+                const filename = `TimeStudy_${this.state.meta.operation.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_')}_${this.state.meta.date}.xlsx`;
                 return { wb, filename };
-            },
-
-            exportExcel: function () {
-                const { wb, filename } = this.buildWorkbook();
-                XLSX.writeFile(wb, filename);
             },
 
             // --- PDF EXPORT ---
@@ -3077,31 +3094,281 @@
                     lines.push(`TAKT: ${this.secondsToMMSS(taktMin * 60)}  |  Manpower: ${(total / (taktMin * 60)).toFixed(2)} operators`);
                 }
 
-                let fallback = null;
+                let file, fallback;
                 try {
-                    let file;
                     if (kind === 'pdf') {
                         const doc = await this.makePdf();
                         file = new File([doc.output('blob')], `${base}.pdf`, { type: 'application/pdf' });
                         fallback = () => doc.save(`${base}.pdf`);
                     } else {
                         const { wb, filename } = this.buildWorkbook();
-                        file = new File([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], filename, {
-                            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                        });
-                        fallback = () => this.exportExcel();
-                    }
-                    const data = { title: subject, text: lines.join('\n'), files: [file] };
-                    if (navigator.canShare && navigator.canShare(data)) {
-                        await navigator.share(data);
-                        return;
+                        file = this.xlsxFile(wb, filename);
+                        fallback = () => XLSX.writeFile(wb, filename);
                     }
                 } catch (e) {
-                    if (e && e.name === 'AbortError') return; // user closed the share sheet
+                    console.warn('could not create the file:', e);
+                    alert('Could not create the PDF (it needs an internet connection the first time). Try Excel instead.');
+                    return;
+                }
+                await this.shareFile(file, subject, lines.join('\n'), fallback);
+            },
+
+            xlsxFile: function (wb, filename) {
+                return new File([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], filename, {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                });
+            },
+
+            // Share via the device share sheet (email, messages, drive...), else download.
+            // Returns false only when the person closed the share sheet.
+            shareFile: async function (file, title, text, fallback) {
+                try {
+                    const data = { title, text, files: [file] };
+                    if (navigator.canShare && navigator.canShare(data)) {
+                        await navigator.share(data);
+                        return true;
+                    }
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return false;
                     console.warn('share failed, falling back to download:', e);
                 }
-                if (fallback) fallback();
-                else alert('Could not create the PDF (it needs an internet connection the first time). Try Excel instead.');
+                fallback();
+                return true;
+            },
+
+            // --- IMPORT / BACKUP ---
+            // Excel files carry a hidden sheet with the full study records as JSON, so the app can
+            // read them back exactly. Excel caps a cell at 32,767 characters, so the JSON is split
+            // down column A.
+            DATA_SHEET: 'KaizenClick data',
+
+            appendDataSheet: function (wb, records) {
+                const json = JSON.stringify({ app: 'KaizenClick', version: 1, exportedAt: new Date().toISOString(), studies: records });
+                const rows = [['KaizenClick data: lets the app import this file again. Please do not edit.']];
+                for (let i = 0; i < json.length; i += 30000) rows.push([json.slice(i, i + 30000)]);
+                XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), this.DATA_SHEET);
+                wb.Workbook = wb.Workbook || {};
+                wb.Workbook.Sheets = wb.SheetNames.map(name => ({ name, Hidden: name === this.DATA_SHEET ? 1 : 0 }));
+            },
+
+            readDataSheet: function (wb) {
+                const ws = wb.Sheets[this.DATA_SHEET];
+                if (!ws) return null;
+                try {
+                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+                    const data = JSON.parse(rows.slice(1).map(r => String(r[0] == null ? '' : r[0])).join(''));
+                    return data && data.app === 'KaizenClick' && Array.isArray(data.studies) ? data : null;
+                } catch (e) {
+                    return null;
+                }
+            },
+
+            // Read the visible "Time Study" sheet (files exported before the data sheet existed, or
+            // edited in Excel). Returns a study record or null if the layout isn't recognised.
+            parseVisibleSheet: function (wb) {
+                const ws = wb.Sheets['Time Study'] || wb.Sheets[wb.SheetNames[0]];
+                if (!ws) return null;
+                const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+                const header = rows.findIndex(r => String(r[0]).trim() === '#');
+                if (header < 0) return null;
+
+                const str = (v) => String(v == null ? '' : v).trim();
+                const asDate = (v) => {
+                    if (typeof v === 'number' && XLSX.SSF) { // Excel turned the date into a serial number
+                        const d = XLSX.SSF.parse_date_code(v);
+                        if (d) return `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
+                    }
+                    return str(v);
+                };
+                const fields = { 'Operator:': 'operatorName', 'Date:': 'date', 'Operation:': 'operation', 'Dept:': 'department', 'TAKT Time (min):': 'taktTime', 'Analyst:': 'documentedBy' };
+                const meta = { custom: [], showManpower: false, showCumulative: true };
+                for (let i = 1; i < header; i++) {
+                    const r = rows[i];
+                    [[0, 1], [3, 4]].forEach(([l, v]) => {
+                        const label = str(r[l]);
+                        if (!label.endsWith(':')) return;
+                        if (fields[label]) {
+                            meta[fields[label]] = fields[label] === 'date' ? asDate(r[v]) : str(r[v]);
+                            if (label === 'TAKT Time (min):') meta.showManpower = true;
+                        } else if (label === 'Manpower Required:') {
+                            meta.showManpower = true;
+                        } else {
+                            meta.custom.push({ label: label.slice(0, -1), value: str(r[v]) });
+                        }
+                    });
+                }
+                const notesCol = rows[header].findIndex(c => str(c) === 'Notes');
+                meta.showNotes = notesCol >= 0;
+
+                const observations = [];
+                let totalElapsedAtEnd = 0;
+                for (let i = header + 1; i < rows.length; i++) {
+                    const r = rows[i];
+                    const desc = str(r[1]);
+                    if (desc === 'TOTAL ELAPSED TIME') totalElapsedAtEnd = (parseFloat(r[2]) || 0) * 1000;
+                    if (!desc || desc.startsWith('TOTAL ')) continue;
+                    const obs = { description: desc, duration: Math.max(0, parseFloat(r[2]) || 0) };
+                    if (notesCol >= 0 && str(r[notesCol])) obs.note = str(r[notesCol]);
+                    observations.push(obs);
+                }
+                return { meta, observations, phase: 'review', totalElapsedAtEnd };
+            },
+
+            // Clean up a record from a file: known fields only, right types, clocks paused.
+            sanitizeRecord: function (raw, now) {
+                const str = (v) => v == null ? '' : String(v);
+                const m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
+                const t = raw.timer && typeof raw.timer === 'object' ? raw.timer : {};
+                const phase = raw.phase === 'capture' ? 'capture' : 'review';
+                const num = (v) => Math.max(0, parseFloat(v) || 0);
+                return {
+                    id: /^[a-z0-9]{4,40}$/i.test(str(raw.id)) ? str(raw.id) : this.newStudyId(),
+                    createdAt: num(raw.createdAt) || now,
+                    meta: {
+                        operation: str(m.operation) || 'Imported study',
+                        operatorName: str(m.operatorName),
+                        department: str(m.department),
+                        taktTime: str(m.taktTime),
+                        documentedBy: str(m.documentedBy),
+                        date: str(m.date),
+                        showManpower: m.showManpower !== false,
+                        showCumulative: m.showCumulative !== false,
+                        showNotes: m.showNotes === true,
+                        roundTo: [1, 5, 15].includes(+m.roundTo) ? +m.roundTo : 15,
+                        custom: (Array.isArray(m.custom) ? m.custom : [])
+                            .map(f => ({ label: str(f && f.label), value: str(f && f.value) })).filter(f => f.label)
+                    },
+                    observations: (Array.isArray(raw.observations) ? raw.observations : []).map((o, i) => {
+                        const obs = { id: now + i, description: str(o && o.description) || 'Unlabeled Element', duration: num(o && o.duration) };
+                        if (o && o.note) obs.note = str(o.note);
+                        return obs;
+                    }),
+                    phase,
+                    totalElapsedAtEnd: num(raw.totalElapsedAtEnd),
+                    timer: {
+                        isRunning: false,
+                        isPaused: phase === 'capture',
+                        elapsedSoFar: num(t.elapsedSoFar),
+                        splitElapsedSoFar: num(t.splitElapsedSoFar),
+                        pauseTime: 0
+                    },
+                    savedAt: now
+                };
+            },
+
+            // Same study with the same content (used to skip re-importing what is already here)
+            studyKey: function (rec) {
+                const m = rec.meta || {};
+                return JSON.stringify([m.operation, m.operatorName, m.date,
+                    (rec.observations || []).map(o => [o.description, +(+o.duration).toFixed(2), o.note || ''])]);
+            },
+
+            importFromInput: function (input) {
+                const file = input.files && input.files[0];
+                input.value = ''; // so choosing the same file again still fires
+                if (file) this.importFile(file);
+            },
+
+            importFile: async function (file) {
+                let wb;
+                try {
+                    wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+                } catch (e) {
+                    this.toast('Could not read that file. Choose an Excel file shared from KaizenClick.', 5000);
+                    return;
+                }
+
+                const data = this.readDataSheet(wb);
+                const visible = this.parseVisibleSheet(wb);
+                let raws;
+                if (data) {
+                    raws = data.studies;
+                    // A single study edited in Excel: take element and header edits from the visible sheet
+                    if (raws.length === 1 && visible && this.studyKey(visible) !== this.studyKey(this.sanitizeRecord(raws[0], 0))) {
+                        const text = {};
+                        ['operation', 'operatorName', 'department', 'taktTime', 'documentedBy', 'date'].forEach(k => {
+                            if (visible.meta[k]) text[k] = visible.meta[k];
+                        });
+                        raws = [Object.assign({}, raws[0], {
+                            meta: Object.assign({}, raws[0].meta, text),
+                            observations: visible.observations,
+                            totalElapsedAtEnd: visible.totalElapsedAtEnd || raws[0].totalElapsedAtEnd
+                        })];
+                    }
+                } else if (visible) {
+                    raws = [visible];
+                } else {
+                    this.toast('That file is not a KaizenClick study.', 5000);
+                    return;
+                }
+
+                this.autoSave();
+                const now = Date.now();
+                const added = [];
+                let skipped = 0;
+                raws.forEach((raw, i) => {
+                    const rec = this.sanitizeRecord(raw || {}, now + i);
+                    const same = this.studies.find(s => s.id === rec.id);
+                    if (same) {
+                        if (this.studyKey(same) === this.studyKey(rec)) { skipped++; return; }
+                        rec.id = this.newStudyId(); // changed since: keep both
+                    }
+                    this.studies.push(rec);
+                    added.push(rec);
+                });
+                this.persistStudies();
+
+                const plural = (n) => `${n} stud${n === 1 ? 'y' : 'ies'}`;
+                const note = skipped ? ` (${plural(skipped)} already here)` : '';
+                if (added.length === 1) {
+                    this.switchStudy(added[0].id);
+                    this.toast(`Imported "${added[0].meta.operation}"${note}`);
+                } else {
+                    this.updateStudyButton();
+                    if (this.isStudiesOpen()) this.renderStudies();
+                    this.toast(added.length ? `Imported ${plural(added.length)}${note}` : `Nothing new: ${plural(skipped)} already here`);
+                }
+            },
+
+            localDate: function () {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            },
+
+            // One Excel file holding every study: a readable list plus the hidden data sheet
+            backupAll: async function () {
+                this.autoSave();
+                if (!this.studies.length) {
+                    this.toast('No studies to back up yet.');
+                    return;
+                }
+                const sorted = this.studies.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+                const rows = [
+                    ['KaizenClick backup', this.localDate()],
+                    ['To restore: open KaizenClick, tap the Studies button, tap Import and choose this file.'],
+                    [],
+                    ['Operation', 'Operator', 'Date', 'Elements', 'Total time', 'Status'],
+                    ...sorted.map(r => {
+                        const m = r.meta || {};
+                        const obs = r.observations || [];
+                        return [m.operation || '', m.operatorName || '', m.date || '', obs.length,
+                            this.secondsToMMSS(obs.reduce((acc, o) => acc + o.duration, 0)), this.studyStatus(r).label];
+                    })
+                ];
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(rows);
+                ws['!cols'] = [{ wch: 32 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 11 }, { wch: 9 }];
+                XLSX.utils.book_append_sheet(wb, ws, 'Studies');
+                this.appendDataSheet(wb, this.studies);
+
+                const filename = `KaizenClick_Backup_${this.localDate()}.xlsx`;
+                const n = this.studies.length;
+                const done = await this.shareFile(this.xlsxFile(wb, filename), `KaizenClick backup (${n} stud${n === 1 ? 'y' : 'ies'})`,
+                    'Backup of KaizenClick studies. To restore, use Import in the app.', () => XLSX.writeFile(wb, filename));
+                if (done) {
+                    try { localStorage.setItem('kaizen_last_backup', String(Date.now())); } catch (e) { /* ignore */ }
+                    if (this.isStudiesOpen()) this.renderStudies();
+                }
             },
         };
 
