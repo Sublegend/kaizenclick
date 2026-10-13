@@ -39,6 +39,7 @@ Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Cumul
 - **Auto-recovery.** If the tab closes mid-study, reopening brings back every study and the one you had open. Clocks come back paused.
 - **Studies live in this browser only.** Clearing browsing data (or a work device's cleanup policy) deletes them. Share any study you need to keep. On iPad, add the app to the Home Screen so Safari doesn't clear it after a week without use.
 - **Pausing** stops the whole study clock, not just the current split.
+- **Reset the split.** While paused, tap the green SPLIT clock at the top to set the current split back to 0:00 (handy if the clock ran when it should have been paused). The elapsed clock is not changed.
 - **Internet needed to load.** The page pulls its styling, icons and Excel library from CDNs. Data is never sent anywhere.
 - **Share** needs the page served over HTTPS (for example GitHub Pages). Where sharing isn't available, it downloads the file instead. The PDF library loads the first time you open the review screen, so that needs a connection.
 

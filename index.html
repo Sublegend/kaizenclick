@@ -579,8 +579,9 @@
                 <span class="text-slate-400 text-[10px] sm:text-xs font-medium hidden sm:inline">ELAPSED</span>
                 <span id="header-elapsed" class="font-mono font-bold text-white tracking-tight text-xs sm:text-sm md:text-base">00:00</span>
             </div>
-            <div id="header-split-container" class="flex items-center gap-1 sm:gap-1.5 bg-emerald-900/40 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
-                <i class="fa-solid fa-rotate text-emerald-400 text-[10px] sm:text-xs"></i>
+            <!-- Tappable while paused: resets the current split to 0:00 -->
+            <div id="header-split-container" onclick="app.triggerResetSplit()" class="flex items-center gap-1 sm:gap-1.5 bg-emerald-900/40 rounded-lg px-2 sm:px-3 py-1 sm:py-1.5">
+                <i id="header-split-icon" class="fa-solid fa-rotate text-emerald-400 text-[10px] sm:text-xs"></i>
                 <span class="text-emerald-400 text-[10px] sm:text-xs font-medium hidden sm:inline">SPLIT</span>
                 <span id="header-split" class="font-mono font-bold text-emerald-300 tracking-tight text-xs sm:text-sm md:text-base">0:00</span>
             </div>
@@ -1918,6 +1919,33 @@
                     btn.title = 'Resume';
                     if (label) label.textContent = 'RESUME';
                 }
+                this.updateSplitResetHint();
+            },
+
+            // While paused, the header split chip doubles as a reset button; show that it can be tapped
+            updateSplitResetHint: function () {
+                const chip = this.els.header.splitContainer;
+                const on = this.state.phase === 'capture' && this.state.isPaused;
+                chip.classList.toggle('cursor-pointer', on);
+                chip.classList.toggle('btn-touch', on);
+                chip.classList.toggle('ring-1', on);
+                chip.classList.toggle('ring-emerald-400/60', on);
+                chip.setAttribute('role', on ? 'button' : 'presentation');
+                chip.title = on ? 'Tap to reset the split clock' : '';
+                document.getElementById('header-split-icon').className =
+                    `fa-solid ${on ? 'fa-rotate-left' : 'fa-rotate'} text-emerald-400 text-[10px] sm:text-xs`;
+            },
+
+            triggerResetSplit: function () {
+                if (this.state.phase !== 'capture' || !this.state.isPaused || this.isModalOpen()) return;
+                this.confirmAction('Reset Split Clock?',
+                    'Set the current split back to 0:00. Use this when the clock ran during time that should not count. The elapsed clock is not changed.',
+                    'Reset split', () => {
+                        this.state.currentSplitStart = this.state.pauseStart;
+                        this.state.previousSplitStart = null;
+                        this.updateHeaderTimers();
+                        this.autoSave();
+                    });
             },
 
             // Draw the capture bar from the real timer state (split button + pause button)
