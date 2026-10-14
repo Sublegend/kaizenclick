@@ -31,12 +31,13 @@ Studies are kept in the browser, which IT policies or a cleanup can wipe, so tre
 
 ## Options
 
-Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Cumulative and Notes on or off at any time.
+Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Running, Bars and Notes on or off at any time.
 
 | Option | What it does |
 | --- | --- |
 | Manpower / TAKT | TAKT field, manpower figure, and a total-vs-TAKT bar |
-| Cumulative time & bars | Running-total column and a bar under each element showing its length |
+| Running total | Column adding up the time element by element |
+| Duration bars | A bar under each element showing its length |
 | Element notes | A note line under each element |
 | Round splits to | 15, 5 or 1 second (default 15) |
 | Custom fields | Extra header details such as Part No. or Shift |
