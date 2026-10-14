@@ -4,7 +4,7 @@ A time study tool that runs in your browser. Tap **SPLIT** as an operator finish
 
 **Live app: https://sublegend.github.io/kaizenclick/**
 
-No install, no account. Your data stays on your device.
+No install, no account. Your study data stays on your device.
 
 ## How to use it
 
@@ -48,7 +48,7 @@ Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Runni
 - **Studies live in this browser only.** Clearing browsing data (or a work device's cleanup policy) deletes them. Share any study you need to keep. On iPad, add the app to the Home Screen so Safari doesn't clear it after a week without use.
 - **Pausing** stops the whole study clock, not just the current split.
 - **Reset the split.** While paused, tap the green SPLIT clock at the top to set the current split back to 0:00 (handy if the clock ran when it should have been paused). That time also comes off the elapsed clock.
-- **Internet needed to load.** The page pulls its styling, icons and Excel library from CDNs. Data is never sent anywhere.
+- **Internet needed to load.** The page loads its styling, fonts, icons and libraries from public CDNs (see [Built with](#built-with)), so those services see the visitor's IP address, as with any website. Your study data is never sent anywhere: it stays in the browser unless you share a file yourself.
 - **Share** needs the page served over HTTPS (for example GitHub Pages). Where sharing isn't available, it downloads the file instead. The PDF library loads the first time you open the review screen, so that needs a connection.
 
 ## Run it
@@ -59,6 +59,18 @@ Open `index.html` in a browser, or host the file on any static site (GitHub Page
 python -m http.server 8000
 ```
 
+## Built with
+
+Loaded from public CDNs at runtime. None of their code is copied into this repository.
+
+| Library | Used for | License |
+| --- | --- | --- |
+| [Tailwind CSS](https://tailwindcss.com) | Styling | MIT |
+| [SheetJS](https://sheetjs.com) | Excel export and import | Apache 2.0 |
+| [jsPDF](https://github.com/parallax/jsPDF) | PDF export | MIT |
+| [Font Awesome Free](https://fontawesome.com) | Icons | Icons CC BY 4.0, fonts SIL OFL 1.1, code MIT |
+| [Inter](https://rsms.me/inter/) (via Google Fonts) | Typeface | SIL OFL 1.1 |
+
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE). The software is provided as is, without warranty. Check its figures (including manpower) before acting on them.
