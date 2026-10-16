@@ -375,6 +375,44 @@
             }
         }
 
+        /* Sections: a header row above each group of elements, with its subtotal */
+        .study-table tbody tr.sec-row,
+        .study-table tbody tr.sec-row:hover {
+            background: #f1f5f9;
+        }
+
+        .study-table tbody tr.sec-row td {
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding-top: 7px;
+            padding-bottom: 7px;
+        }
+
+        .sec-dot {
+            flex-shrink: 0;
+            width: 10px;
+            height: 10px;
+            border-radius: 9999px;
+        }
+
+        .sec-name {
+            font-weight: 800;
+            color: #1e293b;
+            min-width: 2rem;
+        }
+
+        .study-table tbody tr.sec-empty,
+        .study-table tbody tr.sec-empty:hover {
+            background: #ffffff;
+        }
+
+        .study-table tfoot tr.add-sec-row td {
+            border-top: 0;
+            padding-top: 6px;
+            padding-bottom: 6px;
+            font-weight: 700;
+        }
+
         /* Optional cumulative column */
         .hide-cum .col-cum,
         .hide-cum .cum-cell {
@@ -650,6 +688,11 @@
                         <span class="text-sm"><span class="font-semibold text-slate-700">Element notes</span>
                             <span class="block text-xs text-gray-400">A note line under each element</span></span>
                     </label>
+                    <label class="flex items-start gap-3 py-1.5 cursor-pointer">
+                        <input type="checkbox" id="opt-sections" class="mt-1 w-5 h-5 accent-blue-600">
+                        <span class="text-sm"><span class="font-semibold text-slate-700">Sections</span>
+                            <span class="block text-xs text-gray-400">Group elements (e.g. Prep, Build, Finish) with a time for each</span></span>
+                    </label>
                 </div>
 
                 <!-- Split rounding -->
@@ -804,7 +847,10 @@
                     </div>
                 </div>
 
-                <div class="no-print flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
+                <!-- Sections: time and share of the total for each group -->
+                <div id="sections-block" class="hidden p-3 sm:p-5 border-b border-gray-200"></div>
+
+                <div class="no-print flex items-center gap-1.5 sm:gap-2 px-3 py-2 bg-white border-b border-gray-100">
                     <span class="hidden sm:inline text-[10px] font-bold text-slate-400 uppercase tracking-wide">Show</span>
                     <button id="tog-showManpower" onclick="app.toggleOpt('showManpower')"
                         class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-users mr-1 hidden sm:inline"></i>Manpower</button>
@@ -814,6 +860,8 @@
                         class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-chart-simple mr-1 hidden sm:inline"></i>Bars</button>
                     <button id="tog-showNotes" onclick="app.toggleOpt('showNotes')"
                         class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-note-sticky mr-1 hidden sm:inline"></i>Notes</button>
+                    <button id="tog-showSections" onclick="app.toggleOpt('showSections')"
+                        class="opt-chip text-xs font-bold px-2.5 py-1 rounded-full btn-touch"><i class="fa-solid fa-layer-group mr-1 hidden sm:inline"></i>Sections</button>
                 </div>
 
                 <div class="no-print px-3 py-1.5 text-[11px] text-slate-400 bg-white border-b border-gray-100">
@@ -843,6 +891,12 @@
                             <!-- Rows injected here -->
                         </tbody>
                         <tfoot>
+                            <tr id="add-section-row" class="add-sec-row no-print hidden">
+                                <td colspan="5">
+                                    <button onclick="app.openSectionModal()" class="text-xs font-bold text-blue-600 btn-touch">
+                                        <i class="fa-solid fa-plus mr-1"></i>Add section</button>
+                                </td>
+                            </tr>
                             <tr>
                                 <td colspan="2" class="text-slate-700">TOTAL</td>
                                 <td class="text-right font-mono" id="total-element-time">0:00</td>
@@ -1001,6 +1055,12 @@
                 </div>
             </div>
 
+            <!-- Section picker (only when the study has two or more sections) -->
+            <div id="modal-section-group" class="mb-6 hidden">
+                <label class="block text-sm font-bold text-gray-500 mb-2">Section</label>
+                <div id="modal-section-chips" class="flex flex-wrap gap-2"></div>
+            </div>
+
             <!-- Manual Duration Input (Visible only in Review Mode) -->
             <div id="modal-duration-group" class="mb-6 hidden">
                 <label class="block text-sm font-bold text-gray-500 mb-2">Duration (Seconds/MM:SS)</label>
@@ -1019,6 +1079,32 @@
                     <span>SAVE & NEXT</span>
                     <i class="fa-solid fa-arrow-right ml-2"></i>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW SECTION (name, and where it starts) -->
+    <div id="modal-section"
+        class="hidden fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-sm print-hidden"
+        onclick="if (event.target === this) app.closeSectionModal()">
+        <div class="bg-white w-full max-w-sm rounded-xl p-5 shadow-2xl">
+            <h3 class="text-lg font-bold text-gray-700 mb-3">New section</h3>
+            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Name</label>
+            <input type="text" id="section-name" autocomplete="off"
+                class="w-full border-2 border-blue-200 rounded-lg p-3 text-lg focus:border-blue-500 focus:ring-4 ring-blue-100 outline-none"
+                placeholder="e.g. Build" onkeydown="if(event.key==='Enter'){event.preventDefault();app.addSection()}">
+            <div id="section-suggestions" class="flex flex-wrap gap-2 mt-2"></div>
+            <div id="section-start-wrap" class="mt-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Starts at</label>
+                <select id="section-start" onchange="app.updateSectionHint()"
+                    class="w-full border rounded-lg p-2.5 text-sm bg-white focus:ring-2 ring-blue-500 outline-none"></select>
+                <p id="section-start-hint" class="text-xs text-slate-500 mt-1.5"></p>
+            </div>
+            <div class="flex gap-3 mt-5">
+                <button onclick="app.closeSectionModal()"
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-lg btn-touch">Cancel</button>
+                <button onclick="app.addSection()"
+                    class="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow btn-touch">Add section</button>
             </div>
         </div>
     </div>
@@ -1417,6 +1503,7 @@
                         document.getElementById('opt-cumulative').checked = meta.showCumulative !== false;
                         document.getElementById('opt-bars').checked = meta.showBars === undefined ? meta.showCumulative !== false : meta.showBars !== false;
                         document.getElementById('opt-notes').checked = meta.showNotes === true;
+                        document.getElementById('opt-sections').checked = meta.showSections === true;
                         const roundRadio = document.querySelector(`input[name="opt-round"][value="${meta.roundTo}"]`);
                         if (roundRadio) roundRadio.checked = true;
                         (meta.custom || []).forEach(f => this.addSetupField(f.label, f.value));
@@ -1475,6 +1562,10 @@
                         this.closeStudies();
                         return;
                     }
+                    if (e.key === 'Escape' && this.isSectionModalOpen()) {
+                        this.closeSectionModal();
+                        return;
+                    }
                     if (this.isModalOpen() && e.key === 'Escape') {
                         if (!this.els.modal.overlay.classList.contains('hidden')) {
                             this.closeModal();
@@ -1524,7 +1615,7 @@
 
             isModalOpen: function () {
                 return !this.els.modal.overlay.classList.contains('hidden') || !this.els.modal.confirmModal.classList.contains('hidden') ||
-                    this.isStudiesOpen();
+                    this.isStudiesOpen() || this.isSectionModalOpen();
             },
 
             // --- HEADER MANAGEMENT ---
@@ -1758,22 +1849,248 @@
                     cumulative: m.showCumulative !== false,
                     // Bars used to share the Cumulative switch: older studies follow it
                     bars: m.showBars === undefined ? m.showCumulative !== false : m.showBars !== false,
-                    notes: m.showNotes === true
+                    notes: m.showNotes === true,
+                    sections: m.showSections === true && (m.sections || []).length > 0
                 };
             },
 
             toggleOpt: function (key) {
-                const names = { showManpower: 'manpower', showCumulative: 'cumulative', showBars: 'bars', showNotes: 'notes' };
-                this.state.meta[key] = !this.getOpts()[names[key]];
+                const names = { showManpower: 'manpower', showCumulative: 'cumulative', showBars: 'bars', showNotes: 'notes', showSections: 'sections' };
+                const on = !this.getOpts()[names[key]];
+                this.state.meta[key] = on;
+                // First time on (any study, old or new): every element starts in one section
+                if (key === 'showSections' && on && !(this.state.meta.sections || []).length) {
+                    this.state.meta.sections = [{ id: this.newSectionId(), name: 'Section 1' }];
+                    this.toast('Tap the section name to rename it. Use Add section to split the study.', 4500);
+                }
                 this.renderTable();
                 this.autoSave();
+            },
+
+            // --- SECTIONS ---
+            // meta.sections is the ordered list [{ id, name }]; each element carries the id of its
+            // section in obs.sec. Elements are kept in section order, so a section is always one run of rows.
+            SECTION_COLORS: ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#06b6d4', '#84cc16', '#ec4899'],
+
+            newSectionId: function () {
+                return 'g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            },
+
+            sectionColor: function (i) {
+                return this.SECTION_COLORS[i % this.SECTION_COLORS.length];
+            },
+
+            // Give every element a valid section (elements from before sections existed join the
+            // section of the element above, so the first ones go into the first section) and keep
+            // the elements grouped in section order without changing their order within a section.
+            normalizeSections: function () {
+                const meta = this.state.meta;
+                const secs = meta.sections || [];
+                if (!secs.length) return;
+                const order = new Map(secs.map((s, i) => [s.id, i]));
+                const obs = this.state.observations;
+                let prev = secs[0].id;
+                obs.forEach(o => {
+                    if (!order.has(o.sec)) o.sec = prev;
+                    prev = o.sec;
+                });
+                const sorted = obs.map((o, i) => [o, i])
+                    .sort((a, b) => order.get(a[0].sec) - order.get(b[0].sec) || a[1] - b[1])
+                    .map(x => x[0]);
+                obs.splice(0, obs.length, ...sorted);
+                if (!order.has(meta.curSection)) meta.curSection = secs[secs.length - 1].id;
+            },
+
+            // Per-section totals for a study record (or the open study): [{ id, name, color, count, total }]
+            sectionTotals: function (meta, obs) {
+                return (meta.sections || []).map((s, i) => {
+                    const items = obs.filter(o => o.sec === s.id);
+                    return { id: s.id, name: s.name, color: this.sectionColor(i), count: items.length,
+                        total: items.reduce((acc, o) => acc + o.duration, 0) };
+                });
+            },
+
+            renameSection: function (id, el) {
+                const sec = (this.state.meta.sections || []).find(s => s.id === id);
+                if (!sec) return;
+                const name = el.innerText.trim() || sec.name;
+                el.innerText = name;
+                if (name === sec.name) return;
+                sec.name = name;
+                this.renderTable();
+                this.autoSave();
+            },
+
+            scrollToSection: function (id) {
+                const row = this.els.table.querySelector(`tr[data-sec="${id}"]`);
+                if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            },
+
+            triggerDeleteSection: function (id) {
+                const meta = this.state.meta;
+                const secs = meta.sections || [];
+                const i = secs.findIndex(s => s.id === id);
+                if (i < 0) return;
+                const n = this.state.observations.filter(o => o.sec === id).length;
+                const els = `${n} element${n === 1 ? '' : 's'}`;
+                if (secs.length === 1) {
+                    this.confirmAction('Remove Sections?', 'The study goes back to a plain list. No elements are deleted.', 'Remove', () => {
+                        meta.sections = [];
+                        meta.showSections = false;
+                        delete meta.curSection;
+                        this.state.observations.forEach(o => { delete o.sec; });
+                        this.renderTable();
+                        this.autoSave();
+                    });
+                    return;
+                }
+                const into = secs[i > 0 ? i - 1 : 1];
+                this.confirmAction(`Remove "${secs[i].name}"?`,
+                    n ? `Its ${els} move into "${into.name}". No elements are deleted.` : '',
+                    'Remove', () => {
+                        this.state.observations.forEach(o => { if (o.sec === id) o.sec = into.id; });
+                        secs.splice(i, 1);
+                        if (meta.curSection === id) meta.curSection = into.id;
+                        this.renderTable();
+                        this.autoSave();
+                    });
+            },
+
+            isSectionModalOpen: function () {
+                return !document.getElementById('modal-section').classList.contains('hidden');
+            },
+
+            // Names offered when adding a section: the usual three, then names used in other studies
+            sectionSuggestions: function () {
+                const used = new Set((this.state.meta.sections || []).map(s => s.name.toLowerCase()));
+                const names = ['Prep', 'Build', 'Finish'];
+                this.studies.forEach(r => ((r.meta && r.meta.sections) || []).forEach(s => names.push(s.name)));
+                const seen = new Set();
+                return names.filter(n => {
+                    const k = String(n || '').toLowerCase();
+                    if (!k || used.has(k) || seen.has(k) || /^section \d+$/.test(k)) return false;
+                    seen.add(k);
+                    return true;
+                }).slice(0, 8);
+            },
+
+            openSectionModal: function () {
+                const input = document.getElementById('section-name');
+                input.value = '';
+                const sug = document.getElementById('section-suggestions');
+                sug.innerHTML = '';
+                this.sectionSuggestions().forEach(name => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-full text-xs font-semibold btn-touch border border-slate-200';
+                    b.textContent = name;
+                    b.onclick = () => { input.value = name; input.focus(); };
+                    sug.appendChild(b);
+                });
+
+                // Starts at: the end (empty, new splits go into it) or any element, grouped by section
+                const obs = this.state.observations;
+                const select = document.getElementById('section-start');
+                const opt = (value, text) => `<option value="${value}">${this.escapeHtml(text)}</option>`;
+                let html = opt('', 'After the last element (new splits go here)');
+                (this.state.meta.sections || []).forEach(s => {
+                    const rows = obs.map((o, i) => [o, i]).filter(([o]) => o.sec === s.id);
+                    if (!rows.length) return;
+                    html += `<optgroup label="${this.escapeHtml(s.name)}">` +
+                        rows.map(([o, i]) => opt(i, `#${i + 1}  ${o.description}`)).join('') + '</optgroup>';
+                });
+                select.innerHTML = html;
+                select.value = '';
+                document.getElementById('section-start-wrap').classList.toggle('hidden', !obs.length);
+                this.updateSectionHint();
+
+                document.getElementById('modal-section').classList.remove('hidden');
+                setTimeout(() => input.focus(), 100);
+            },
+
+            closeSectionModal: function () {
+                document.getElementById('modal-section').classList.add('hidden');
+            },
+
+            // How many elements the new section takes: from the chosen one to the end of its section
+            sectionMoveRange: function (start) {
+                const obs = this.state.observations;
+                if (!(start >= 0 && start < obs.length)) return null;
+                let end = start;
+                while (end + 1 < obs.length && obs[end + 1].sec === obs[start].sec) end++;
+                return { start, end };
+            },
+
+            updateSectionHint: function () {
+                const v = document.getElementById('section-start').value;
+                const r = v === '' ? null : this.sectionMoveRange(parseInt(v, 10));
+                const hint = document.getElementById('section-start-hint');
+                if (!r) {
+                    hint.textContent = 'Starts empty. Elements you capture or add next go into it.';
+                } else {
+                    const n = r.end - r.start + 1;
+                    hint.textContent = n === 1 ? `Moves element #${r.start + 1} into the new section.`
+                        : `Moves elements #${r.start + 1} to #${r.end + 1} (${n}) into the new section.`;
+                }
+            },
+
+            addSection: function () {
+                const meta = this.state.meta;
+                if (!meta.sections) meta.sections = [];
+                const secs = meta.sections;
+                const name = document.getElementById('section-name').value.trim() || `Section ${secs.length + 1}`;
+                const sec = { id: this.newSectionId(), name };
+                const v = document.getElementById('section-start').value;
+                const r = v === '' ? null : this.sectionMoveRange(parseInt(v, 10));
+                if (!r) {
+                    secs.push(sec);
+                    meta.curSection = sec.id;
+                } else {
+                    const obs = this.state.observations;
+                    const from = secs.findIndex(s => s.id === obs[r.start].sec);
+                    secs.splice(from + 1, 0, sec);
+                    for (let k = r.start; k <= r.end; k++) obs[k].sec = sec.id;
+                    // Capturing into the section that was split: carry on in the new (later) part
+                    if (meta.curSection === secs[from].id && r.end === obs.length - 1) meta.curSection = sec.id;
+                }
+                meta.showSections = true;
+                this.closeSectionModal();
+                this.renderTable();
+                this.autoSave();
+                setTimeout(() => this.scrollToSection(sec.id), 50);
+            },
+
+            // Section chips in the element modal: where this element goes (and the next ones)
+            renderModalSections: function () {
+                const group = document.getElementById('modal-section-group');
+                const secs = this.state.meta.sections || [];
+                const show = this.getOpts().sections && secs.length > 1;
+                group.classList.toggle('hidden', !show);
+                if (!show) return;
+                if (!secs.some(s => s.id === this.modalSection)) this.modalSection = this.state.meta.curSection || secs[secs.length - 1].id;
+                const wrap = document.getElementById('modal-section-chips');
+                wrap.innerHTML = '';
+                secs.forEach((s, i) => {
+                    const on = s.id === this.modalSection;
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold btn-touch border ' +
+                        (on ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-300');
+                    b.innerHTML = `<span class="sec-dot" style="background:${this.sectionColor(i)}"></span>${this.escapeHtml(s.name)}`;
+                    b.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        this.modalSection = s.id;
+                        this.renderModalSections();
+                    });
+                    wrap.appendChild(b);
+                });
             },
 
             renderOptToggles: function () {
                 const opts = this.getOpts();
                 const set = (id, on) => {
                     const btn = document.getElementById(id);
-                    btn.className = 'opt-chip flex-1 sm:flex-none text-center whitespace-nowrap text-xs font-bold px-2.5 py-1.5 rounded-full btn-touch ' +
+                    btn.className = 'opt-chip flex-1 sm:flex-none text-center whitespace-nowrap text-xs font-bold px-2 sm:px-2.5 py-1.5 rounded-full btn-touch ' +
                         (on ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-400');
                     btn.setAttribute('aria-pressed', on);
                 };
@@ -1781,6 +2098,7 @@
                 set('tog-showCumulative', opts.cumulative);
                 set('tog-showBars', opts.bars);
                 set('tog-showNotes', opts.notes);
+                set('tog-showSections', opts.sections);
             },
 
             // --- CUSTOM HEADER FIELDS ---
@@ -1870,6 +2188,7 @@
                     showCumulative: document.getElementById('opt-cumulative').checked,
                     showBars: document.getElementById('opt-bars').checked,
                     showNotes: document.getElementById('opt-notes').checked,
+                    showSections: document.getElementById('opt-sections').checked,
                     roundTo: parseInt(document.querySelector('input[name="opt-round"]:checked').value, 10) || 15,
                     custom: this.readSetupFields()
                 };
@@ -1880,8 +2199,12 @@
                     return;
                 }
 
-                this.state.meta = meta;
                 localStorage.setItem('kaizen_meta', JSON.stringify(meta));
+                if (meta.showSections) {
+                    meta.sections = [{ id: this.newSectionId(), name: 'Section 1' }];
+                    meta.curSection = meta.sections[0].id;
+                }
+                this.state.meta = meta;
 
                 this.state.isRunning = true;
                 this.state.isPaused = false;
@@ -2103,6 +2426,8 @@
 
                 // Render custom suggestions instead of datalist options
                 this.renderModalSuggestions("");
+                this.modalSection = null;
+                this.renderModalSections();
 
                 this.els.modal.overlay.classList.remove('hidden');
                 this.els.modal.content.classList.add('modal-enter-active');
@@ -2183,6 +2508,14 @@
                     description: desc,
                     duration: duration
                 };
+                const secs = this.state.meta.sections || [];
+                if (secs.length) {
+                    // Into the chosen section (or the current one); later elements follow it
+                    const sec = secs.some(s => s.id === this.modalSection) ? this.modalSection
+                        : (secs.some(s => s.id === this.state.meta.curSection) ? this.state.meta.curSection : secs[secs.length - 1].id);
+                    obs.sec = sec;
+                    this.state.meta.curSection = sec;
+                }
 
                 this.state.observations.push(obs);
                 this.els.modal.overlay.classList.add('hidden');
@@ -2286,7 +2619,7 @@
                     if (navigator.vibrate) navigator.vibrate(6);
                 }
 
-                const newVisualIndex = Array.from(ds.body.children).indexOf(ds.draggedRow);
+                const newVisualIndex = Array.from(ds.body.children).filter(r => r.hasAttribute('data-index')).indexOf(ds.draggedRow);
                 const positionSpan = ds.cloneRow.querySelector('.drag-handle .font-bold');
                 if (positionSpan) positionSpan.textContent = newVisualIndex + 1;
             },
@@ -2336,15 +2669,32 @@
                 document.removeEventListener('touchend', app.handleDragEnd);
                 document.removeEventListener('touchcancel', app.handleDragEnd);
 
-                const finalIndex = Array.from(ds.body.children).indexOf(ds.draggedRow);
+                // Section header rows are not elements: count element rows only
+                const finalIndex = Array.from(ds.body.children).filter(r => r.hasAttribute('data-index')).indexOf(ds.draggedRow);
+                // With sections shown, the element joins the section whose header is above where it was dropped
+                let dropSec = null;
+                for (let r = ds.draggedRow.previousElementSibling; r; r = r.previousElementSibling) {
+                    if (r.dataset.sec) { dropSec = r.dataset.sec; break; }
+                }
 
                 ds.cloneRow.remove();
                 ds.draggedRow.classList.remove('is-dragging');
                 document.body.classList.remove('is-reordering');
 
+                const obs = app.state.observations;
+                const element = obs[ds.startIndex];
                 if (ds.startIndex !== finalIndex) {
-                    const element = app.state.observations.splice(ds.startIndex, 1)[0];
-                    app.state.observations.splice(finalIndex, 0, element);
+                    obs.splice(ds.startIndex, 1);
+                    obs.splice(finalIndex, 0, element);
+                }
+                const secs = app.state.meta.sections || [];
+                if (secs.length) {
+                    if (app.getOpts().sections) element.sec = dropSec || secs[0].id;
+                    else {
+                        // Sections hidden: take the section of the neighbour above (or below at the top)
+                        const near = obs[finalIndex - 1] || obs[finalIndex + 1];
+                        if (near) element.sec = near.sec;
+                    }
                 }
                 app.renderTable();
                 app.autoSave();
@@ -2686,8 +3036,51 @@
                 const tbody = this.els.table;
                 tbody.innerHTML = "";
                 let totalElementTime = 0;
+                this.normalizeSections();
                 const maxDuration = Math.max(0, ...this.state.observations.map(o => o.duration));
                 const opts = this.getOpts();
+                const grandTotal = this.state.observations.reduce((acc, o) => acc + o.duration, 0);
+                const secTotals = opts.sections ? this.sectionTotals(this.state.meta, this.state.observations) : [];
+                const secIndex = new Map(secTotals.map((s, i) => [s.id, i]));
+                document.getElementById('add-section-row').classList.toggle('hidden', !opts.sections);
+                this.renderSectionsBlock(secTotals, grandTotal);
+
+                // Header row for a section: name (tap to rename), element count, subtotal, share of total
+                const keys = "if(event.key==='Enter'){event.preventDefault();this.blur()}";
+                const recording = this.state.phase === 'capture' && secTotals.length > 1;
+                const addSectionRows = (s) => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'sec-row';
+                    tr.setAttribute('data-sec', s.id);
+                    const pct = grandTotal > 0 ? Math.round((s.total / grandTotal) * 100) : 0;
+                    const rec = recording && s.id === this.state.meta.curSection
+                        ? '<span class="no-print shrink-0 text-[9px] font-black tracking-wide text-emerald-700 bg-emerald-100 rounded px-1 py-px" title="New splits go into this section">NOW</span>' : '';
+                    tr.innerHTML = `
+                        <td colspan="2">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span class="sec-dot" style="background:${s.color}"></span>
+                                <span class="sec-name meta-edit break-words" contenteditable="true" data-placeholder="Section"
+                                    onblur="app.renameSection('${s.id}', this)" onkeydown="${keys}"
+                                    title="Tap to rename">${this.escapeHtml(s.name)}</span>
+                                <span class="shrink-0 text-[10px] font-semibold text-slate-400 whitespace-nowrap">${s.count} el</span>
+                                ${rec}
+                            </div>
+                        </td>
+                        <td class="text-right font-mono font-bold text-slate-800">${this.secondsToMMSS(s.total)}</td>
+                        <td class="text-right font-mono text-slate-400 text-xs cum-cell">${pct}%</td>
+                        <td class="text-center no-print">
+                            <button onclick="app.triggerDeleteSection('${s.id}')" class="text-slate-300 hover:text-red-500 px-1 btn-touch" title="Remove section (keeps its elements)"><i class="fa-solid fa-xmark text-xs"></i></button>
+                        </td>`;
+                    tbody.appendChild(tr);
+                    if (!s.count) {
+                        const empty = document.createElement('tr');
+                        empty.className = 'sec-empty no-print';
+                        empty.innerHTML = `<td colspan="5" class="text-xs text-slate-400 italic">${s.id === this.state.meta.curSection && this.state.phase === 'capture'
+                            ? 'Empty. Your next splits go here.' : 'Empty. Drag elements here by their grip.'}</td>`;
+                        tbody.appendChild(empty);
+                    }
+                };
+                let shownSec = -1;
 
                 document.getElementById('view-study').classList.toggle('hide-cum', !opts.cumulative);
                 document.getElementById('summary-block').classList.toggle('hidden', !opts.manpower);
@@ -2704,13 +3097,18 @@
                 document.getElementById('meta-date').value = this.state.meta.date || '';
 
                 this.state.observations.forEach((obs, index) => {
+                    // Headers for this element's section and any empty sections before it
+                    const si = opts.sections ? secIndex.get(obs.sec) : -1;
+                    while (shownSec < si) addSectionRows(secTotals[++shownSec]);
+
                     totalElementTime += obs.duration;
                     const pct = opts.bars && maxDuration > 0 ? Math.round((obs.duration / maxDuration) * 100) : 0;
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-index', index);
+                    const stripe = si >= 0 ? ` style="box-shadow: inset 3px 0 0 ${secTotals[si].color}"` : '';
 
                     tr.innerHTML = `
-                        <td class="text-slate-400 font-mono select-none drag-handle" title="Drag to reorder">
+                        <td class="text-slate-400 font-mono select-none drag-handle" title="Drag to reorder"${stripe}>
                             <div class="flex items-center gap-1">
                                 <i class="fa-solid fa-bars text-gray-400 text-xs sm:text-sm no-print"></i>
                                 <span class="font-bold text-gray-700 text-sm">${index + 1}</span>
@@ -2745,6 +3143,7 @@
                     tr.addEventListener('mousedown', (e) => this.handleDragStart(e, index));
                     tr.addEventListener('touchstart', (e) => this.handleDragStart(e, index));
                 });
+                while (shownSec < secTotals.length - 1) addSectionRows(secTotals[++shownSec]);
 
                 // Calculate manpower
                 const taktTimeMinutes = parseFloat(this.state.meta.taktTime) || 0;
@@ -2758,6 +3157,31 @@
 
                 // Total Element Time
                 this.els.totalElement.innerText = this.secondsToMMSS(totalElementTime);
+            },
+
+            // Section breakdown above the table: one stacked bar, then a line per section (tap to jump)
+            renderSectionsBlock: function (secTotals, total) {
+                const block = document.getElementById('sections-block');
+                block.classList.toggle('hidden', !secTotals.length);
+                if (!secTotals.length) return;
+                const pct = (t) => total > 0 ? Math.round((t / total) * 100) : 0;
+                const stack = secTotals.filter(s => s.total > 0)
+                    .map(s => `<div style="flex:${s.total} 1 0;background:${s.color}" title="${this.escapeHtml(s.name)}"></div>`).join('');
+                const rows = secTotals.map(s => `
+                    <button onclick="app.scrollToSection('${s.id}')" class="w-full grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 text-left py-0.5 btn-touch">
+                        <span class="sec-dot" style="background:${s.color}"></span>
+                        <span class="truncate text-sm font-semibold text-slate-700">${this.escapeHtml(s.name)}
+                            <span class="text-[10px] font-semibold text-slate-400 ml-1">${s.count} el</span></span>
+                        <span class="font-mono font-bold text-sm text-slate-800 text-right">${this.secondsToMMSS(s.total)}</span>
+                        <span class="font-mono text-xs text-slate-400 text-right w-9">${pct(s.total)}%</span>
+                    </button>`).join('');
+                block.innerHTML = `
+                    <div class="flex items-baseline justify-between gap-3">
+                        <div class="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wide">Sections</div>
+                        <div class="text-xs"><span class="text-[10px] text-slate-500 uppercase font-bold mr-1.5">Total</span><span class="font-mono font-bold">${this.secondsToMMSS(total)}</span></div>
+                    </div>
+                    <div class="mt-2 flex h-2.5 rounded-full overflow-hidden bg-slate-200 gap-px">${stack}</div>
+                    <div class="mt-2 space-y-0.5">${rows}</div>`;
             },
 
             renderSummary: function (total, taktSec, manpower) {
@@ -2835,6 +3259,9 @@
 
                 const showMp = this.getOpts().manpower;
                 const showNotes = this.getOpts().notes;
+                this.normalizeSections();
+                const showSec = this.getOpts().sections;
+                const secTotals = showSec ? this.sectionTotals(this.state.meta, this.state.observations) : [];
                 const customRows = (this.state.meta.custom || []).map(f => [f.label + ":", f.value]);
                 const meta = [
                     ["Time Study"], [""],
@@ -2846,16 +3273,21 @@
                     ...customRows,
                     ...(showMp ? [["Manpower Required:", manpower.toFixed(2), "Op(s)"]] : []),
                     [],
-                    ["#", "Work Element Description", "Time (MM:SS) - Raw Seconds", ...(showNotes ? ["Notes"] : [])]
+                    ["#", "Work Element Description", "Time (MM:SS) - Raw Seconds", ...(showSec ? ["Section"] : []), ...(showNotes ? ["Notes"] : [])]
                 ];
 
-                const rows = this.state.observations.map((obs, i) => [i + 1, obs.description, obs.duration.toFixed(2), ...(showNotes ? [obs.note || ''] : [])]);
+                const secName = (o) => (secTotals.find(s => s.id === o.sec) || {}).name || '';
+                const rows = this.state.observations.map((obs, i) => [i + 1, obs.description, obs.duration.toFixed(2),
+                    ...(showSec ? [secName(obs)] : []), ...(showNotes ? [obs.note || ''] : [])]);
+                // Section subtotals ("TOTAL ..." rows are skipped when the file is imported again)
+                secTotals.forEach(s => rows.push(["", `TOTAL (${s.name})`, s.total.toFixed(2),
+                    totalSec > 0 ? `${Math.round((s.total / totalSec) * 100)}%` : '']));
                 rows.push(["", "TOTAL ELEMENT TIME", totalSec.toFixed(2)]);
                 rows.push(["", "TOTAL ELAPSED TIME", elapsedSecs.toFixed(2)]);
                 const wsData = [...meta, ...rows];
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
-                ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 20 }, ...(showNotes ? [{ wch: 40 }] : [])];
+                ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 20 }, ...(showSec ? [{ wch: 16 }] : []), ...(showNotes ? [{ wch: 40 }] : [])];
                 XLSX.utils.book_append_sheet(wb, ws, "Time Study");
                 this.autoSave();
                 this.appendDataSheet(wb, this.studies.filter(s => s.id === this.activeId));
@@ -2899,7 +3331,9 @@
             // Draws the sheet as a Letter PDF. Fits one page (down to a readable size) when it can;
             // otherwise paginates with the header repeated. Rows are never split across pages.
             buildPdf: function (jsPDF) {
+                this.normalizeSections();
                 const meta = this.state.meta, obs = this.state.observations, opts = this.getOpts();
+                const secTotals = opts.sections ? this.sectionTotals(meta, obs) : [];
                 const PW = 612, PH = 792, M = 36, CW = PW - 2 * M, FOOT = 26;
                 // Black and neutral grays only (0 = black, 255 = white), drawn in the gray colour space:
                 // printers then treat the page as black and white and print text in solid black.
@@ -2991,6 +3425,24 @@
                             });
                             y += bh + 14;
                         }
+
+                        // Section breakdown: name, share bar, time, percent
+                        if (secTotals.length) {
+                            const rowH = 15, bh = 22 + secTotals.length * rowH;
+                            stroke(LINE, 0.75); doc.roundedRect(M, y, CW, bh, 4, 4, 'S');
+                            font('bold', 7.5, LABEL); doc.text('SECTIONS', M + 12, y + 14);
+                            const nameW2 = 150, pctX = M + CW - 12, timeX = pctX - 40;
+                            const bx = M + 12 + nameW2 + 10, bw = timeX - 50 - bx;
+                            secTotals.forEach((s, i) => {
+                                const ry = y + 22 + i * rowH;
+                                font('bold', 9.5, INK); doc.text(clip(s.name, nameW2), M + 12, ry + 9);
+                                fill(TRACK); doc.roundedRect(bx, ry + 3, bw, 6, 3, 3, 'F');
+                                if (total > 0 && s.total > 0) { fill(BAR); doc.roundedRect(bx, ry + 3, Math.max(4, bw * s.total / total), 6, 3, 3, 'F'); }
+                                font('bold', 9.5, INK); doc.text(mmss(s.total), timeX, ry + 9, { align: 'right' });
+                                font('normal', 9, LABEL); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '-', pctX, ry + 9, { align: 'right' });
+                            });
+                            y += bh + 14;
+                        }
                         return y;
                     };
 
@@ -3027,9 +3479,28 @@
                     const limit = PH - M - FOOT;
                     let y = drawHead(drawTop(M));
                     let running = 0;
+                    // Section band above each section's first element (kept on the same page as it)
+                    const secH = 18 * scale;
+                    const drawSec = (s) => {
+                        fill(HEAD); doc.rect(M, y, CW, secH, 'F');
+                        stroke(LINE, 0.75); doc.line(M, y + secH, M + CW, y + secH);
+                        const base = y + secH / 2 + 3.3 * scale;
+                        font('bold', 9.5 * scale, INK);
+                        const name = clip(s.name, nameW - 40);
+                        doc.text(name, numX, base);
+                        const nameEnd = numX + doc.getTextWidth(name) + 6 * scale;
+                        font('normal', 8 * scale, LABEL);
+                        doc.text(`${s.count} el`, nameEnd, base);
+                        font('bold', 9.5 * scale, INK); doc.text(mmss(s.total), timeRight, base, { align: 'right' });
+                        if (opts.cumulative) { font('normal', 9 * scale, LABEL); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '', cumRight, base, { align: 'right' }); }
+                        y += secH;
+                    };
+                    let lastSec = null;
                     obs.forEach((o, i) => {
                         const m = measure(o);
-                        if (y + m.h > limit) { doc.addPage(); y = drawHead(drawCont(M)); }
+                        const sec = secTotals.length && o.sec !== lastSec ? secTotals.find(s => s.id === o.sec) : null;
+                        if (y + m.h + (sec ? secH : 0) > limit) { doc.addPage(); y = drawHead(drawCont(M)); }
+                        if (sec) { drawSec(sec); lastSec = o.sec; }
                         running += o.duration;
                         if (i % 2 === 1) { fill(ZEBRA); doc.rect(M, y, CW, m.h, 'F'); }
                         const base = y + padY + nameSize * 0.92;
@@ -3112,6 +3583,10 @@
                 const taktMin = parseFloat(meta.taktTime) || 0;
                 if (this.getOpts().manpower && taktMin > 0) {
                     lines.push(`TAKT: ${this.secondsToMMSS(taktMin * 60)}  |  Manpower: ${(total / (taktMin * 60)).toFixed(2)} operators`);
+                }
+                if (this.getOpts().sections) {
+                    lines.push('Sections: ' + this.sectionTotals(meta, this.state.observations)
+                        .map(s => `${s.name} ${this.secondsToMMSS(s.total)}`).join('  |  '));
                 }
 
                 let file, fallback;
@@ -3219,6 +3694,9 @@
                 }
                 const notesCol = rows[header].findIndex(c => str(c) === 'Notes');
                 meta.showNotes = notesCol >= 0;
+                const secCol = rows[header].findIndex(c => str(c) === 'Section');
+                const secIds = {};
+                meta.sections = [];
 
                 const observations = [];
                 let totalElapsedAtEnd = 0;
@@ -3229,8 +3707,17 @@
                     if (!desc || desc.startsWith('TOTAL ')) continue;
                     const obs = { description: desc, duration: Math.max(0, parseFloat(r[2]) || 0) };
                     if (notesCol >= 0 && str(r[notesCol])) obs.note = str(r[notesCol]);
+                    const sec = secCol >= 0 ? str(r[secCol]) : '';
+                    if (sec) {
+                        if (!secIds[sec]) {
+                            secIds[sec] = this.newSectionId();
+                            meta.sections.push({ id: secIds[sec], name: sec });
+                        }
+                        obs.sec = secIds[sec];
+                    }
                     observations.push(obs);
                 }
+                meta.showSections = meta.sections.length > 0;
                 return { meta, observations, phase: 'review', totalElapsedAtEnd };
             },
 
@@ -3241,6 +3728,9 @@
                 const t = raw.timer && typeof raw.timer === 'object' ? raw.timer : {};
                 const phase = raw.phase === 'capture' ? 'capture' : 'review';
                 const num = (v) => Math.max(0, parseFloat(v) || 0);
+                const sections = (Array.isArray(m.sections) ? m.sections : [])
+                    .map(s => ({ id: str(s && s.id), name: str(s && s.name).trim() || 'Section' }))
+                    .filter((s, i, all) => /^[a-z0-9]{1,40}$/i.test(s.id) && all.findIndex(x => x.id === s.id) === i);
                 return {
                     id: /^[a-z0-9]{4,40}$/i.test(str(raw.id)) ? str(raw.id) : this.newStudyId(),
                     createdAt: num(raw.createdAt) || now,
@@ -3255,6 +3745,9 @@
                         showCumulative: m.showCumulative !== false,
                         showBars: m.showBars === undefined ? m.showCumulative !== false : m.showBars !== false,
                         showNotes: m.showNotes === true,
+                        showSections: m.showSections === true && sections.length > 0,
+                        sections,
+                        curSection: str(m.curSection),
                         roundTo: [1, 5, 15].includes(+m.roundTo) ? +m.roundTo : 15,
                         custom: (Array.isArray(m.custom) ? m.custom : [])
                             .map(f => ({ label: str(f && f.label), value: str(f && f.value) })).filter(f => f.label)
@@ -3262,6 +3755,7 @@
                     observations: (Array.isArray(raw.observations) ? raw.observations : []).map((o, i) => {
                         const obs = { id: now + i, description: str(o && o.description) || 'Unlabeled Element', duration: num(o && o.duration) };
                         if (o && o.note) obs.note = str(o.note);
+                        if (o && o.sec) obs.sec = str(o.sec);
                         return obs;
                     }),
                     phase,
@@ -3280,8 +3774,11 @@
             // Same study with the same content (used to skip re-importing what is already here)
             studyKey: function (rec) {
                 const m = rec.meta || {};
+                // Section names count only while sections are shown (only then does Excel get a Section column)
+                const shown = m.showSections === true ? (m.sections || []) : [];
+                const sec = (o) => (shown.find(s => s.id === o.sec) || {}).name || '';
                 return JSON.stringify([m.operation, m.operatorName, m.date,
-                    (rec.observations || []).map(o => [o.description, +(+o.duration).toFixed(2), o.note || ''])]);
+                    (rec.observations || []).map(o => [o.description, +(+o.duration).toFixed(2), o.note || '', sec(o)])]);
             },
 
             importFromInput: function (input) {
@@ -3310,6 +3807,11 @@
                         ['operation', 'operatorName', 'department', 'taktTime', 'documentedBy', 'date'].forEach(k => {
                             if (visible.meta[k]) text[k] = visible.meta[k];
                         });
+                        // Sections follow the Section column when the sheet has one
+                        if (visible.meta.sections.length) {
+                            text.sections = visible.meta.sections;
+                            text.showSections = true;
+                        }
                         raws = [Object.assign({}, raws[0], {
                             meta: Object.assign({}, raws[0].meta, text),
                             observations: visible.observations,

@@ -13,6 +13,19 @@ No install, no account. Your study data stays on your device.
 3. **Review.** Tap any name, time or detail to edit it. Drag the ≡ grip to reorder. Tap the bin to delete a row.
 4. **Share.** **Share** sends the sheet as a **PDF** or **Excel** file (email, Messages, Drive, etc.). The PDF is black and white so it prints crisply on any printer, and fits one page when it can (otherwise it paginates). To print, share the PDF and choose **Print** from the share sheet (or open the downloaded PDF on a desktop). **Resume** goes back to capturing; **New** starts another study.
 
+## Sections
+
+Split one study into groups such as **Prep**, **Build** and **Finish**, and get a time for each group plus the overall total.
+
+- **Turn on** with the **Sections** chip on the sheet (or tick Sections on the setup screen). An existing study starts with all its elements in one section.
+- **Rename** a section by tapping its name.
+- **Add section** (under the last element) asks for a name and where it starts. Pick an element to move it and the rest of its section into the new one, or leave it at the end and your next splits go into it.
+- **Move elements** between sections by dragging the ≡ grip past a section header.
+- **While capturing**, the split dialog lets you choose the section. The one marked **NOW** gets the next splits.
+- The ✕ on a section header removes the section. Its elements move into the section above and are never deleted.
+
+The breakdown (time and share of the total per section) shows above the table, and is included in the PDF and Excel files.
+
 ## Studies
 
 You can keep several studies on the device and switch between them. Tap the study name in the top-right corner to open the list.
@@ -31,7 +44,7 @@ Studies are kept in the browser, which IT policies or a cleanup can wipe, so tre
 
 ## Options
 
-Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Running, Bars and Notes on or off at any time.
+Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Running, Bars, Notes and Sections on or off at any time.
 
 | Option | What it does |
 | --- | --- |
@@ -39,6 +52,7 @@ Choose on the setup screen. The **Show** chips on the sheet turn Manpower, Runni
 | Running total | Column adding up the time element by element |
 | Duration bars | A bar under each element showing its length |
 | Element notes | A note line under each element |
+| Sections | Group elements (e.g. Prep, Build, Finish) with a time for each |
 | Round splits to | 15, 5 or 1 second (default 15) |
 | Custom fields | Extra header details such as Part No. or Shift |
 
