@@ -705,7 +705,8 @@
                             <span class="block text-xs text-gray-400">A note line under each element</span></span>
                     </label>
                     <label class="flex items-start gap-3 py-1.5 cursor-pointer">
-                        <input type="checkbox" id="opt-sections" class="mt-1 w-5 h-5 accent-blue-600">
+                        <input type="checkbox" id="opt-sections" class="mt-1 w-5 h-5 accent-blue-600"
+                            onchange="app.applySetupOptions()">
                         <span class="text-sm"><span class="font-semibold text-slate-700">Sections</span>
                             <span class="block text-xs text-gray-400">Group elements (e.g. Prep, Build, Finish) with a time for each</span></span>
                     </label>
@@ -775,6 +776,23 @@
                             class="flex-1 border rounded px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none"
                             placeholder="Add element name...">
                         <button onclick="app.addChip()"
+                            class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded text-sm font-bold btn-touch">
+                            <i class="fa-solid fa-plus mr-1"></i>Add
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sections the study starts with (only when the Sections option is ticked) -->
+                <div id="setup-sections" class="hidden border-t pt-4 mt-2">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Sections
+                        <span class="normal-case font-normal text-gray-400 ml-1">(in order; capture starts in the first)</span>
+                    </label>
+                    <div id="section-chip-container" class="flex flex-wrap gap-2 mb-3 min-h-[32px]"></div>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-new-section"
+                            class="flex-1 border rounded px-3 py-2 text-sm focus:ring-2 ring-blue-500 outline-none"
+                            placeholder="Add section name..." onkeydown="if(event.key==='Enter'){event.preventDefault();app.addSetupSection()}">
+                        <button onclick="app.addSetupSection()"
                             class="bg-slate-600 hover:bg-slate-700 text-white px-3 py-2 rounded text-sm font-bold btn-touch">
                             <i class="fa-solid fa-plus mr-1"></i>Add
                         </button>
@@ -1504,6 +1522,7 @@
                     } catch (e) { /* use hardcoded defaults */ }
                 }
                 this.renderChips();
+                this.loadSetupSections();
 
                 // Load saved meta for form pre-fill
                 const savedMeta = localStorage.getItem('kaizen_meta');
@@ -1678,32 +1697,43 @@
             },
 
             // --- CHIP / DEFAULT ELEMENTS MANAGEMENT ---
-            chipDragIndex: null,
-
             renderChips: function () {
-                const container = this.els.chips.container;
-                container.innerHTML = '';
                 document.getElementById('btn-clear-chips').classList.toggle('hidden', this.state.history.length === 0);
-                if (this.state.history.length === 0) {
-                    container.innerHTML = '<span class="text-xs text-gray-400">No suggestions yet. Names you save during a study are added here.</span>';
+                this.renderChipList(this.els.chips.container, this.state.history,
+                    '<span class="text-xs text-gray-400">No suggestions yet. Names you save during a study are added here.</span>',
+                    () => { this.saveDefaults(); this.renderChips(); });
+            },
+
+            // A row of removable chips that can be dragged into a new order (mouse and touch).
+            // onChange runs after the list array is changed in place.
+            renderChipList: function (container, list, emptyHtml, onChange) {
+                container.innerHTML = '';
+                if (list.length === 0) {
+                    container.innerHTML = emptyHtml;
                     return;
                 }
-                this.state.history.forEach((item, i) => {
+                let dragIndex = null;
+                list.forEach((item, i) => {
                     const chip = document.createElement('span');
                     chip.className = 'element-chip';
                     chip.draggable = true;
                     chip.setAttribute('data-chip-index', i);
-                    chip.innerHTML = `<i class="fa-solid fa-grip-vertical chip-grip"></i>${this.escapeHtml(item)}<button onclick="event.stopPropagation(); app.removeChip(${i})" title="Remove">&times;</button>`;
+                    chip.innerHTML = `<i class="fa-solid fa-grip-vertical chip-grip"></i>${this.escapeHtml(item)}<button type="button" title="Remove">&times;</button>`;
+                    chip.querySelector('button').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        list.splice(i, 1);
+                        onChange();
+                    });
 
                     chip.addEventListener('dragstart', (e) => {
-                        this.chipDragIndex = i;
+                        dragIndex = i;
                         chip.classList.add('chip-dragging');
                         e.dataTransfer.effectAllowed = 'move';
                     });
                     chip.addEventListener('dragend', () => {
                         chip.classList.remove('chip-dragging');
                         container.querySelectorAll('.chip-over').forEach(c => c.classList.remove('chip-over'));
-                        this.chipDragIndex = null;
+                        dragIndex = null;
                     });
                     chip.addEventListener('dragover', (e) => {
                         e.preventDefault();
@@ -1716,11 +1746,10 @@
                     chip.addEventListener('drop', (e) => {
                         e.preventDefault();
                         chip.classList.remove('chip-over');
-                        if (this.chipDragIndex !== null && this.chipDragIndex !== i) {
-                            const moved = this.state.history.splice(this.chipDragIndex, 1)[0];
-                            this.state.history.splice(i, 0, moved);
-                            this.saveDefaults();
-                            this.renderChips();
+                        if (dragIndex !== null && dragIndex !== i) {
+                            const moved = list.splice(dragIndex, 1)[0];
+                            list.splice(i, 0, moved);
+                            onChange();
                         }
                     });
 
@@ -1737,7 +1766,7 @@
                         const touch = e.touches[0];
                         touchStartX = touch.clientX;
                         touchStartY = touch.clientY;
-                        this.chipDragIndex = i;
+                        dragIndex = i;
                         lastOverIndex = null;
                         startRect = chip.getBoundingClientRect();
                         
@@ -1758,7 +1787,7 @@
                     }, { passive: false });
 
                     chip.addEventListener('touchmove', (e) => {
-                        if (this.chipDragIndex === null || !clone) return;
+                        if (dragIndex === null || !clone) return;
                         const touch = e.touches[0];
                         const dx = touch.clientX - touchStartX;
                         const dy = touch.clientY - touchStartY;
@@ -1791,13 +1820,12 @@
                         chip.classList.remove('chip-dragging');
                         container.querySelectorAll('.element-chip').forEach(c => c.classList.remove('chip-over'));
 
-                        if (this.chipDragIndex !== null && lastOverIndex !== null && this.chipDragIndex !== lastOverIndex) {
-                            const moved = this.state.history.splice(this.chipDragIndex, 1)[0];
-                            this.state.history.splice(lastOverIndex, 0, moved);
-                            this.saveDefaults();
-                            this.renderChips();
+                        if (dragIndex !== null && lastOverIndex !== null && dragIndex !== lastOverIndex) {
+                            const moved = list.splice(dragIndex, 1)[0];
+                            list.splice(lastOverIndex, 0, moved);
+                            onChange();
                         }
-                        this.chipDragIndex = null;
+                        dragIndex = null;
                         lastOverIndex = null;
                     };
 
@@ -1840,12 +1868,6 @@
             confirmClearSuggestions: function () {
                 this.els.modal.confirmModal.classList.add('hidden');
                 this.state.history = [];
-                this.saveDefaults();
-                this.renderChips();
-            },
-
-            removeChip: function (index) {
-                this.state.history.splice(index, 1);
                 this.saveDefaults();
                 this.renderChips();
             },
@@ -2187,6 +2209,40 @@
             applySetupOptions: function () {
                 const on = document.getElementById('opt-manpower').checked;
                 document.getElementById('takt-field').classList.toggle('hidden', !on);
+                document.getElementById('setup-sections').classList.toggle('hidden', !document.getElementById('opt-sections').checked);
+            },
+
+            // --- SETUP: SECTIONS TO START WITH (remembered for the next study) ---
+            loadSetupSections: function () {
+                let list = null;
+                try { list = JSON.parse(localStorage.getItem('kaizen_section_defaults')); } catch (e) { /* use the default */ }
+                this.setupSections = Array.isArray(list) ? list.map(String).filter(Boolean) : ['Prep', 'Build', 'Finish'];
+                this.renderSetupSections();
+            },
+
+            renderSetupSections: function () {
+                this.renderChipList(document.getElementById('section-chip-container'), this.setupSections,
+                    '<span class="text-xs text-gray-400">None added: the study starts with one section, "Section 1".</span>',
+                    () => { this.saveSetupSections(); this.renderSetupSections(); });
+            },
+
+            saveSetupSections: function () {
+                try {
+                    localStorage.setItem('kaizen_section_defaults', JSON.stringify(this.setupSections));
+                } catch (e) { /* silent */ }
+            },
+
+            addSetupSection: function () {
+                const input = document.getElementById('input-new-section');
+                const val = input.value.trim();
+                if (!val) return;
+                if (!this.setupSections.some(n => n.toLowerCase() === val.toLowerCase())) {
+                    this.setupSections.push(val);
+                    this.saveSetupSections();
+                    this.renderSetupSections();
+                }
+                input.value = '';
+                input.focus();
             },
 
             // --- LOGIC: SETUP & START ---
@@ -2221,7 +2277,8 @@
 
                 localStorage.setItem('kaizen_meta', JSON.stringify(meta));
                 if (meta.showSections) {
-                    meta.sections = [{ id: this.newSectionId(), name: 'Section 1' }];
+                    const names = this.setupSections && this.setupSections.length ? this.setupSections : ['Section 1'];
+                    meta.sections = names.map(name => ({ id: this.newSectionId(), name }));
                     meta.curSection = meta.sections[0].id;
                 }
                 this.state.meta = meta;

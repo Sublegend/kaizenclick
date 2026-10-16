@@ -17,7 +17,8 @@ No install, no account. Your study data stays on your device.
 
 Split one study into groups such as **Prep**, **Build** and **Finish**, and get a time for each group plus the overall total.
 
-- **Turn on** with the **Sections** chip on the sheet (or tick Sections on the setup screen). An existing study starts with all its elements in one section.
+- **Turn on** with the **Sections** chip on the sheet. An existing study starts with all its elements in one section.
+- **Start with sections.** Tick Sections on the setup screen and a Sections list appears under Default Elements (Prep, Build, Finish to begin with). Add, remove or drag them into order; the study starts with those sections and captures into the first. The list is remembered for next time.
 - **Rename** a section by tapping its name.
 - **Add section** (under the last element) asks for a name and where it starts. Pick an element to move it and the rest of its section into the new one, or leave it at the end and your next splits go into it.
 - **Move elements** between sections by dragging the ≡ grip past a section header.
