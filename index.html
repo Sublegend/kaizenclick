@@ -3194,7 +3194,7 @@
                             <span class="sec-label text-sm font-semibold text-slate-700">${this.escapeHtml(s.name)}</span>
                             <span class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-400">${this.elementCount(s.count)}</span></span>
                         <span class="font-mono font-bold text-sm text-slate-800 text-right">${this.secondsToMMSS(s.total)}</span>
-                        <span class="font-mono text-xs text-slate-400 text-right w-9">${pct(s.total)}%</span>
+                        <span class="font-mono font-bold text-xs text-slate-700 text-right w-9">${pct(s.total)}%</span>
                     </button>`).join('');
                 block.innerHTML = `
                     <div class="flex items-baseline justify-between gap-3">
@@ -3467,7 +3467,7 @@
                                 fill(TRACK); doc.roundedRect(bx, ry + 3, bw, 6, 3, 3, 'F');
                                 if (total > 0 && s.total > 0) { fill(BAR); doc.roundedRect(bx, ry + 3, Math.max(4, bw * s.total / total), 6, 3, 3, 'F'); }
                                 font('bold', 9.5, INK); doc.text(mmss(s.total), timeX, ry + 9, { align: 'right' });
-                                font('normal', 9, LABEL); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '-', pctX, ry + 9, { align: 'right' });
+                                font('bold', 9, INK); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '-', pctX, ry + 9, { align: 'right' });
                                 ry += h;
                             });
                             y += bh + 14;
