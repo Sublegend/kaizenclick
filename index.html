@@ -3533,12 +3533,15 @@
                         if (opts.cumulative) { font('bold', 9 * scale, INK); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '', cumRight, base, { align: 'right' }); }
                         y += ms.h;
                     };
-                    let lastSec = null;
+                    let lastSec = null, pageTop = -1;
                     obs.forEach((o, i) => {
                         const m = measure(o);
                         const sec = secTotals.length && o.sec !== lastSec ? secTotals.find(s => s.id === o.sec) : null;
                         const ms = sec ? measureSec(sec) : null;
-                        if (y + m.h + (ms ? ms.h : 0) > limit) { doc.addPage(); y = drawHead(drawCont(M)); }
+                        // A section moves to the next page unless its band and first few elements (up to 3) fit here
+                        let need = m.h + (ms ? ms.h : 0);
+                        if (ms) for (let k = i + 1; k < i + 3 && k < obs.length && obs[k].sec === o.sec; k++) need += measure(obs[k]).h;
+                        if (y + need > limit && y > pageTop) { doc.addPage(); y = pageTop = drawHead(drawCont(M)); }
                         if (sec) { drawSec(sec, ms); lastSec = o.sec; }
                         running += o.duration;
                         if (i % 2 === 1) { fill(ZEBRA); doc.rect(M, y, CW, m.h, 'F'); }
