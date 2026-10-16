@@ -3087,7 +3087,7 @@
                             </div>
                         </td>
                         <td class="text-right font-mono font-bold text-slate-800">${this.secondsToMMSS(s.total)}</td>
-                        <td class="text-right font-mono text-slate-400 text-xs cum-cell">${pct}%</td>
+                        <td class="text-right font-mono font-bold text-slate-700 text-xs cum-cell">${pct}%</td>
                         <td class="text-center no-print">
                             <button onclick="app.triggerDeleteSection('${s.id}')" class="text-slate-300 hover:text-red-500 px-1 btn-touch" title="Remove section (keeps its elements)"><i class="fa-solid fa-xmark text-xs"></i></button>
                         </td>`;
@@ -3530,7 +3530,7 @@
                         font('normal', 8 * scale, LABEL);
                         doc.text(ms.count, countX, base + (ms.lines.length - 1) * secLine);
                         font('bold', secSize, INK); doc.text(mmss(s.total), timeRight, base, { align: 'right' });
-                        if (opts.cumulative) { font('normal', 9 * scale, LABEL); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '', cumRight, base, { align: 'right' }); }
+                        if (opts.cumulative) { font('bold', 9 * scale, INK); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '', cumRight, base, { align: 'right' }); }
                         y += ms.h;
                     };
                     let lastSec = null;
