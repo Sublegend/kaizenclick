@@ -399,6 +399,22 @@
             font-weight: 800;
             color: #1e293b;
             min-width: 2rem;
+            overflow-wrap: anywhere;
+        }
+
+        .sec-label {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        /* Section names wrap on the sheet; on phones they stay on one line ("...") except while being edited */
+        @media screen and (max-width: 639px) {
+            .sec-name:not(:focus),
+            .sec-label {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
         }
 
         .study-table tbody tr.sec-empty,
@@ -1880,6 +1896,10 @@
                 return this.SECTION_COLORS[i % this.SECTION_COLORS.length];
             },
 
+            elementCount: function (n) {
+                return `${n} element${n === 1 ? '' : 's'}`;
+            },
+
             // Give every element a valid section (elements from before sections existed join the
             // section of the element above, so the first ones go into the first section) and keep
             // the elements grouped in section order without changing their order within a section.
@@ -3059,10 +3079,10 @@
                         <td colspan="2">
                             <div class="flex items-center gap-2 min-w-0">
                                 <span class="sec-dot" style="background:${s.color}"></span>
-                                <span class="sec-name meta-edit break-words" contenteditable="true" data-placeholder="Section"
+                                <span class="sec-name meta-edit" contenteditable="true" data-placeholder="Section"
                                     onblur="app.renameSection('${s.id}', this)" onkeydown="${keys}"
                                     title="Tap to rename">${this.escapeHtml(s.name)}</span>
-                                <span class="shrink-0 text-[10px] font-semibold text-slate-400 whitespace-nowrap">${s.count} el</span>
+                                <span class="shrink-0 text-[10px] font-semibold text-slate-400 whitespace-nowrap">${this.elementCount(s.count)}</span>
                                 ${rec}
                             </div>
                         </td>
@@ -3170,8 +3190,9 @@
                 const rows = secTotals.map(s => `
                     <button onclick="app.scrollToSection('${s.id}')" class="w-full grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 text-left py-0.5 btn-touch">
                         <span class="sec-dot" style="background:${s.color}"></span>
-                        <span class="truncate text-sm font-semibold text-slate-700">${this.escapeHtml(s.name)}
-                            <span class="text-[10px] font-semibold text-slate-400 ml-1">${s.count} el</span></span>
+                        <span class="flex items-center gap-1.5 min-w-0">
+                            <span class="sec-label text-sm font-semibold text-slate-700">${this.escapeHtml(s.name)}</span>
+                            <span class="shrink-0 whitespace-nowrap text-[10px] font-semibold text-slate-400">${this.elementCount(s.count)}</span></span>
                         <span class="font-mono font-bold text-sm text-slate-800 text-right">${this.secondsToMMSS(s.total)}</span>
                         <span class="font-mono text-xs text-slate-400 text-right w-9">${pct(s.total)}%</span>
                     </button>`).join('');
@@ -3428,18 +3449,26 @@
 
                         // Section breakdown: name, share bar, time, percent
                         if (secTotals.length) {
-                            const rowH = 15, bh = 22 + secTotals.length * rowH;
+                            // Long names wrap; the row grows and its bar, time and percent stay on the first line
+                            const nameW2 = 170, pctX = M + CW - 12, timeX = pctX - 40, lineS = 11.5;
+                            font('bold', 9.5, INK);
+                            const rows = secTotals.map(s => {
+                                const lines = doc.splitTextToSize(this.pdfSafe(s.name), nameW2);
+                                return { s, lines, h: 15 + (lines.length - 1) * lineS };
+                            });
+                            const bh = 22 + rows.reduce((acc, r) => acc + r.h, 0);
                             stroke(LINE, 0.75); doc.roundedRect(M, y, CW, bh, 4, 4, 'S');
                             font('bold', 7.5, LABEL); doc.text('SECTIONS', M + 12, y + 14);
-                            const nameW2 = 150, pctX = M + CW - 12, timeX = pctX - 40;
                             const bx = M + 12 + nameW2 + 10, bw = timeX - 50 - bx;
-                            secTotals.forEach((s, i) => {
-                                const ry = y + 22 + i * rowH;
-                                font('bold', 9.5, INK); doc.text(clip(s.name, nameW2), M + 12, ry + 9);
+                            let ry = y + 22;
+                            rows.forEach(({ s, lines, h }) => {
+                                font('bold', 9.5, INK);
+                                lines.forEach((ln, k) => doc.text(ln, M + 12, ry + 9 + k * lineS));
                                 fill(TRACK); doc.roundedRect(bx, ry + 3, bw, 6, 3, 3, 'F');
                                 if (total > 0 && s.total > 0) { fill(BAR); doc.roundedRect(bx, ry + 3, Math.max(4, bw * s.total / total), 6, 3, 3, 'F'); }
                                 font('bold', 9.5, INK); doc.text(mmss(s.total), timeX, ry + 9, { align: 'right' });
                                 font('normal', 9, LABEL); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '-', pctX, ry + 9, { align: 'right' });
+                                ry += h;
                             });
                             y += bh + 14;
                         }
@@ -3480,27 +3509,37 @@
                     let y = drawHead(drawTop(M));
                     let running = 0;
                     // Section band above each section's first element (kept on the same page as it)
-                    const secH = 18 * scale;
-                    const drawSec = (s) => {
-                        fill(HEAD); doc.rect(M, y, CW, secH, 'F');
-                        stroke(LINE, 0.75); doc.line(M, y + secH, M + CW, y + secH);
-                        const base = y + secH / 2 + 3.3 * scale;
-                        font('bold', 9.5 * scale, INK);
-                        const name = clip(s.name, nameW - 40);
-                        doc.text(name, numX, base);
-                        const nameEnd = numX + doc.getTextWidth(name) + 6 * scale;
+                    // Long names wrap: the band grows, and the element count follows the last line
+                    const secSize = 9.5 * scale, secLine = secSize * 1.22, secPad = 4.5 * scale;
+                    const measureSec = (s) => {
+                        const count = this.elementCount(s.count);
                         font('normal', 8 * scale, LABEL);
-                        doc.text(`${s.count} el`, nameEnd, base);
-                        font('bold', 9.5 * scale, INK); doc.text(mmss(s.total), timeRight, base, { align: 'right' });
+                        const countW = doc.getTextWidth(count) + 6 * scale;
+                        font('bold', secSize, INK);
+                        const lines = doc.splitTextToSize(this.pdfSafe(s.name), timeRight - 46 - numX - countW);
+                        return { count, lines, h: secPad * 2 + lines.length * secLine };
+                    };
+                    const drawSec = (s, ms) => {
+                        fill(HEAD); doc.rect(M, y, CW, ms.h, 'F');
+                        stroke(LINE, 0.75); doc.line(M, y + ms.h, M + CW, y + ms.h);
+                        const base = y + secPad + secSize * 0.92;
+                        font('bold', secSize, INK);
+                        ms.lines.forEach((ln, k) => doc.text(ln, numX, base + k * secLine));
+                        const last = ms.lines[ms.lines.length - 1] || '';
+                        const countX = numX + doc.getTextWidth(last) + 6 * scale;
+                        font('normal', 8 * scale, LABEL);
+                        doc.text(ms.count, countX, base + (ms.lines.length - 1) * secLine);
+                        font('bold', secSize, INK); doc.text(mmss(s.total), timeRight, base, { align: 'right' });
                         if (opts.cumulative) { font('normal', 9 * scale, LABEL); doc.text(total > 0 ? Math.round(s.total / total * 100) + '%' : '', cumRight, base, { align: 'right' }); }
-                        y += secH;
+                        y += ms.h;
                     };
                     let lastSec = null;
                     obs.forEach((o, i) => {
                         const m = measure(o);
                         const sec = secTotals.length && o.sec !== lastSec ? secTotals.find(s => s.id === o.sec) : null;
-                        if (y + m.h + (sec ? secH : 0) > limit) { doc.addPage(); y = drawHead(drawCont(M)); }
-                        if (sec) { drawSec(sec); lastSec = o.sec; }
+                        const ms = sec ? measureSec(sec) : null;
+                        if (y + m.h + (ms ? ms.h : 0) > limit) { doc.addPage(); y = drawHead(drawCont(M)); }
+                        if (sec) { drawSec(sec, ms); lastSec = o.sec; }
                         running += o.duration;
                         if (i % 2 === 1) { fill(ZEBRA); doc.rect(M, y, CW, m.h, 'F'); }
                         const base = y + padY + nameSize * 0.92;
